@@ -32,13 +32,13 @@ print_banner() {
  |_| \_|\___/|_| \_\_/   \_\  |_|  \___/|_| \_|_| \_|_____|_____|
                                                                 
 EOF
-    echo -e "${MAGENTA}   »»» اتوماسیون تانل فوق‌سریع و هوشمند بک‌هال نورا (NORA TUNNEL) «««${NC}"
+    echo -e "${MAGENTA}       »»» NORA TUNNEL — Smart Layer-4 Tunnel Automation «««${NC}"
     echo -e "${CYAN}------------------------------------------------------------------${NC}"
 }
 
 check_root() {
     if [ "$EUID" -ne 0 ]; then
-        echo -e "${RED}[ERROR] لطفاً این اسکریپت را با دسترسی روت (root) اجرا کنید.${NC}"
+        echo -e "${RED}[ERROR] Please run this installer as root.${NC}"
         exit 1
     fi
 }
@@ -53,14 +53,14 @@ detect_arch() {
             ARCH="arm64"
             ;;
         *)
-            echo -e "${RED}[ERROR] معماری پردازنده ($arch) پشتیبانی نمی‌شود.${NC}"
+            echo -e "${RED}[ERROR] Architecture ($arch) is not supported.${NC}"
             exit 1
             ;;
     esac
 }
 
 install_deps() {
-    echo -e "${YELLOW}[+] در حال بررسی و نصب بسته‌های مورد نیاز...${NC}"
+    echo -e "${YELLOW}[+] Updating package lists and installing dependencies...${NC}"
     if command -v apt-get &>/dev/null; then
         apt-get update -y >/dev/null 2>&1 || true
         apt-get install -y curl tar wget iptables >/dev/null 2>&1 || true
@@ -70,7 +70,7 @@ install_deps() {
 }
 
 install_binary() {
-    echo -e "${YELLOW}[+] در حال دانلود و راه‌اندازی NORA TUNNEL (${ARCH})...${NC}"
+    echo -e "${YELLOW}[+] Downloading and setting up NORA TUNNEL (${ARCH})...${NC}"
     mkdir -p "$CONFIG_DIR"
     mkdir -p "$CONFIG_DIR/backhaul"
 
@@ -79,14 +79,14 @@ install_binary() {
         cp ./nora-tunnel "$INSTALL_DIR/nora-tunnel"
         chmod +x "$INSTALL_DIR/nora-tunnel"
     elif [ -n "$NORA_MIRROR" ]; then
-        echo -e "${CYAN}[*] در حال دریافت باینری نورا از سرور (${NORA_MIRROR})...${NC}"
+        echo -e "${CYAN}[*] Downloading binary from mirror (${NORA_MIRROR})...${NC}"
         if curl -fsSL "http://${NORA_MIRROR}/download/nora-tunnel-linux-${ARCH}" -o "$INSTALL_DIR/nora-tunnel"; then
             chmod +x "$INSTALL_DIR/nora-tunnel"
         fi
     else
         # Download from GitHub Release
         local LATEST_URL="https://github.com/${GITHUB_REPO}/releases/latest/download/nora-tunnel-linux-${ARCH}.tar.gz"
-        echo -e "${CYAN}[*] دریافت از: ${LATEST_URL}${NC}"
+        echo -e "${CYAN}[*] Downloading from: ${LATEST_URL}${NC}"
         if curl -fsSL "$LATEST_URL" -o /tmp/nora-tunnel.tar.gz 2>/dev/null; then
             tar -xzf /tmp/nora-tunnel.tar.gz -C "$INSTALL_DIR"
             chmod +x "$INSTALL_DIR/nora-tunnel"
@@ -96,7 +96,7 @@ install_binary() {
 
     # Download backhaul binary if not exists
     if ! command -v backhaul &>/dev/null && [ ! -f "$INSTALL_DIR/backhaul" ]; then
-        echo -e "${YELLOW}[+] در حال نصب هسته Backhaul v0.7.2...${NC}"
+        echo -e "${YELLOW}[+] Installing Backhaul core v0.7.2...${NC}"
         if [ -n "$NORA_MIRROR" ] && curl -fsSL "http://${NORA_MIRROR}/download/backhaul" -o "$INSTALL_DIR/backhaul" 2>/dev/null; then
             chmod +x "$INSTALL_DIR/backhaul"
         else
@@ -112,7 +112,7 @@ install_binary() {
 }
 
 setup_systemd() {
-    echo -e "${YELLOW}[+] در حال تنظیم سرویس systemd...${NC}"
+    echo -e "${YELLOW}[+] Configuring systemd service...${NC}"
     cat << EOF > "$SERVICE_FILE"
 [Unit]
 Description=NORA TUNNEL Management Service
@@ -138,69 +138,205 @@ EOF
 }
 
 setup_cli() {
+    echo -e "${YELLOW}[+] Installing CLI management menu ('nora')...${NC}"
     cat << 'EOF' > "$INSTALL_DIR/nora"
 #!/usr/bin/env bash
-case "$1" in
-    start)
-        systemctl start nora-tunnel
-        echo "NORA TUNNEL started."
-        ;;
-    stop)
-        systemctl stop nora-tunnel
-        echo "NORA TUNNEL stopped."
-        ;;
-    restart)
-        systemctl restart nora-tunnel
-        echo "NORA TUNNEL restarted."
-        ;;
-    status)
-        systemctl status nora-tunnel
-        ;;
-    log|logs)
-        journalctl -u nora-tunnel -f -n 50
-        ;;
-    passwd|password)
-        read -rp "نام کاربری جدید: " u
-        read -rp "رمز عبور جدید: " p
-        /usr/local/bin/nora-tunnel -c /etc/nora-tunnel/config.json -set-user "$u" -set-pass "$p"
-        systemctl restart nora-tunnel
-        ;;
-    *)
-        echo "NORA TUNNEL CLI"
-        echo "Usage: nora {start|stop|restart|status|logs|passwd}"
-        ;;
-esac
+# NORA TUNNEL — CLI Management Tool
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+CYAN='\033[0;36m'
+MAGENTA='\033[0;35m'
+BOLD='\033[1m'
+NC='\033[0m'
+
+INSTALL_DIR="/usr/local/bin"
+CONFIG_DIR="/etc/nora-tunnel"
+SERVICE_NAME="nora-tunnel"
+
+show_banner() {
+    clear
+    echo -e "${CYAN}${BOLD}"
+    cat << "BANNER"
+  _  _  ___  ____    _     _____ _   _ _   _ _   _ _____ _     
+ | \| |/ _ \|  _ \  / \   |_   _| | | | \ | | \ | | ____| |    
+ | .` | | | | |_) |/ _ \    | | | | | |  \| |  \| |  _| | |    
+ | |\ | |_| |  _ </ ___ \   | | | |_| | |\  | |\  | |___| |___ 
+ |_| \_|\___/|_| \_\_/   \_\  |_|  \___/|_| \_|_| \_|_____|_____|
+BANNER
+    echo -e "${MAGENTA}       »»» NORA TUNNEL — Layer-4 Tunnel Management CLI «««${NC}"
+    echo -e "${CYAN}------------------------------------------------------------------${NC}"
+}
+
+check_root() {
+    if [ "$EUID" -ne 0 ]; then
+        echo -e "${RED}[ERROR] Please run this command as root.${NC}"
+        exit 1
+    fi
+}
+
+service_status() {
+    echo -e "${CYAN}[*] Checking ${SERVICE_NAME} status:${NC}"
+    systemctl status ${SERVICE_NAME} --no-pager
+}
+
+service_start() {
+    echo -e "${YELLOW}[+] Starting service...${NC}"
+    systemctl start ${SERVICE_NAME}
+    echo -e "${GREEN}[✔] Service started successfully.${NC}"
+}
+
+service_stop() {
+    echo -e "${YELLOW}[+] Stopping service...${NC}"
+    systemctl stop ${SERVICE_NAME}
+    echo -e "${GREEN}[✔] Service stopped successfully.${NC}"
+}
+
+service_restart() {
+    echo -e "${YELLOW}[+] Restarting service...${NC}"
+    systemctl restart ${SERVICE_NAME}
+    echo -e "${GREEN}[✔] Service restarted successfully.${NC}"
+}
+
+service_logs() {
+    echo -e "${CYAN}[*] Displaying live logs (Press Ctrl+C to exit):${NC}"
+    journalctl -u ${SERVICE_NAME} -f -n 50
+}
+
+change_credentials() {
+    echo -e "${YELLOW}------------------------------------------------------------------${NC}"
+    echo -e "${CYAN}${BOLD}[+] Change Web Panel Credentials:${NC}"
+    read -rp "Enter new username: " new_user
+    read -rp "Enter new password: " new_pass
+
+    if [ -z "$new_user" ] || [ -z "$new_pass" ]; then
+        echo -e "${RED}[ERROR] Username or password cannot be empty.${NC}"
+        return
+    fi
+
+    ${INSTALL_DIR}/nora-tunnel -c ${CONFIG_DIR}/config.json -set-user "$new_user" -set-pass "$new_pass"
+    systemctl restart ${SERVICE_NAME}
+    echo -e "${GREEN}[✔] Credentials updated successfully.${NC}"
+}
+
+update_panel() {
+    echo -e "${YELLOW}[+] Fetching latest release from GitHub...${NC}"
+    bash <(curl -fsSL https://raw.githubusercontent.com/NOVA-X-PANEL/NORA-TUNNEL/main/install.sh)
+}
+
+reinstall_panel() {
+    echo -ne "${YELLOW}[!] Are you sure you want to reinstall NORA TUNNEL? [y/N]: ${NC}"
+    read -r confirm
+    if [[ "$confirm" =~ ^[yY]$ ]]; then
+        bash <(curl -fsSL https://raw.githubusercontent.com/NOVA-X-PANEL/NORA-TUNNEL/main/install.sh)
+    else
+        echo -e "${CYAN}[*] Operation cancelled.${NC}"
+    fi
+}
+
+uninstall_panel() {
+    echo -e "${RED}${BOLD}[!] WARNING: This will completely remove NORA TUNNEL and all services.${NC}"
+    read -rp "Are you sure? Type 'yes' to confirm: " confirm
+    if [ "$confirm" == "yes" ]; then
+        echo -e "${YELLOW}[+] Stopping service...${NC}"
+        systemctl stop ${SERVICE_NAME} 2>/dev/null || true
+        systemctl disable ${SERVICE_NAME} 2>/dev/null || true
+        rm -f /etc/systemd/system/${SERVICE_NAME}.service
+        systemctl daemon-reload
+
+        echo -e "${YELLOW}[+] Removing binaries...${NC}"
+        rm -f ${INSTALL_DIR}/nora-tunnel
+        rm -f ${INSTALL_DIR}/nora
+
+        read -rp "Do you also want to remove config directory (/etc/nora-tunnel)? [y/N]: " del_cfg
+        if [[ "$del_cfg" =~ ^[yY]$ ]]; then
+            rm -rf ${CONFIG_DIR}
+        fi
+
+        echo -e "${GREEN}[✔] NORA TUNNEL completely uninstalled.${NC}"
+        exit 0
+    else
+        echo -e "${CYAN}[*] Uninstall cancelled.${NC}"
+    fi
+}
+
+show_menu() {
+    while true; do
+        show_banner
+
+        local st_text="${RED}[ STOPPED ]${NC}"
+        if systemctl is-active --quiet ${SERVICE_NAME}; then
+            st_text="${GREEN}[ RUNNING ]${NC}"
+        fi
+
+        local srv_ip=$(curl -s -4 https://api.ipify.org 2>/dev/null || echo "SERVER_IP")
+
+        echo -e "  Service Status : ${st_text}"
+        echo -e "  Dashboard URL  : ${BOLD}http://${srv_ip}:7777/${NC}"
+        echo -e "${CYAN}------------------------------------------------------------------${NC}"
+        echo -e "  ${GREEN}1)${NC} Service Status"
+        echo -e "  ${GREEN}2)${NC} Start Service"
+        echo -e "  ${GREEN}3)${NC} Stop Service"
+        echo -e "  ${GREEN}4)${NC} Restart Service"
+        echo -e "  ${GREEN}5)${NC} View Live Logs"
+        echo -e "  ${GREEN}6)${NC} Change Admin Password"
+        echo -e "  ${CYAN}7)${NC} Update NORA TUNNEL"
+        echo -e "  ${YELLOW}8)${NC} Reinstall Panel"
+        echo -e "  ${RED}9)${NC} Completely Uninstall"
+        echo -e "  ${MAGENTA}0)${NC} Exit Menu"
+        echo -e "${CYAN}------------------------------------------------------------------${NC}"
+        echo -ne "Please select an option [0-9]: "
+        read -r choice
+
+        case "$choice" in
+            1) service_status; echo -ne "\nPress Enter to return to menu..."; read -r ;;
+            2) service_start; sleep 1 ;;
+            3) service_stop; sleep 1 ;;
+            4) service_restart; sleep 1 ;;
+            5) service_logs ;;
+            6) change_credentials; echo -ne "\nPress Enter to return to menu..."; read -r ;;
+            7) update_panel; break ;;
+            8) reinstall_panel; break ;;
+            9) uninstall_panel; break ;;
+            0|q|exit) echo -e "\n${CYAN}Exiting menu.${NC}"; exit 0 ;;
+            *) echo -e "${RED}Invalid option!${NC}"; sleep 1 ;;
+        esac
+    done
+}
+
+main() {
+    check_root
+
+    case "$1" in
+        status) service_status ;;
+        start) service_start ;;
+        stop) service_stop ;;
+        restart) service_restart ;;
+        log|logs) service_logs ;;
+        passwd|password) change_credentials ;;
+        update) update_panel ;;
+        reinstall) reinstall_panel ;;
+        uninstall) uninstall_panel ;;
+        "") show_menu ;;
+        *)
+            echo "NORA TUNNEL CLI"
+            echo "Usage: nora {status|start|stop|restart|logs|passwd|update|reinstall|uninstall}"
+            echo "Or run 'nora' without arguments to open interactive menu."
+            ;;
+    esac
+}
+
+main "$@"
 EOF
     chmod +x "$INSTALL_DIR/nora"
 }
 
 configure_credentials() {
-    echo -e "${YELLOW}------------------------------------------------------------------${NC}"
-    echo -e "${CYAN}${BOLD}[+] Panel Credentials Setup / تنظیم اطلاعات ورود به پنل:${NC}"
-
-    local input_user=""
-    local input_pass=""
-
-    echo -ne "${YELLOW}Enter Admin Username [Default: admin]: ${NC}"
-    if [ -c /dev/tty ]; then
-        read -r input_user </dev/tty 2>/dev/null || read -r input_user || true
-    else
-        read -r input_user 2>/dev/null || true
-    fi
-
-    echo -ne "${YELLOW}Enter Admin Password [Default: admin]: ${NC}"
-    if [ -c /dev/tty ]; then
-        read -r input_pass </dev/tty 2>/dev/null || read -r input_pass || true
-    else
-        read -r input_pass 2>/dev/null || true
-    fi
-
-    ADMIN_USER="${input_user:-admin}"
-    ADMIN_PASS="${input_pass:-admin}"
-
+    ADMIN_USER="admin"
+    ADMIN_PASS="admin"
     $INSTALL_DIR/nora-tunnel -c $CONFIG_DIR/config.json -set-user "$ADMIN_USER" -set-pass "$ADMIN_PASS" >/dev/null 2>&1 || true
     systemctl restart nora-tunnel
-    echo -e "${GREEN}[✔] Username: ${ADMIN_USER} | Password set successfully.${NC}"
 }
 
 get_public_ip() {
@@ -219,17 +355,19 @@ main() {
     get_public_ip
 
     echo -e "${GREEN}==================================================================${NC}"
-    echo -e "${GREEN}${BOLD}✔ نصب NORA TUNNEL با موفقیت انجام شد!${NC}"
+    echo -e "${GREEN}${BOLD}✔ NORA TUNNEL installed successfully!${NC}"
     echo -e "${GREEN}==================================================================${NC}"
-    echo -e "${CYAN}🌐 نشانی پنل وب:${NC}  ${BOLD}http://${SERVER_IP}:7777/${NC}"
-    echo -e "${CYAN}👤 نام کاربری:${NC}   ${BOLD}${ADMIN_USER}${NC}"
-    echo -e "${CYAN}🔑 رمز عبور:${NC}     ${BOLD}${ADMIN_PASS}${NC}"
+    echo -e "${CYAN}🌐 Web Dashboard :${NC} ${BOLD}http://${SERVER_IP}:7777/${NC}"
+    echo -e "${CYAN}👤 Username      :${NC} ${BOLD}admin${NC}"
+    echo -e "${CYAN}🔑 Password      :${NC} ${BOLD}admin${NC}"
     echo -e "${MAGENTA}------------------------------------------------------------------${NC}"
-    echo -e "${YELLOW}راهنمای اتصال سریع:${NC}"
-    echo -e " ۱. در سرور خارج وارد پنل شده و آی‌پی سرور ایران را وارد کنید."
-    echo -e " ۲. دکمه «تولید هش اختصاصی تانل» را بزنید و هش NORA:// را کپی کنید."
-    echo -e " ۳. در سرور ایران وارد پنل شده و هش را در بخش «اتصال سریع» پیست کنید."
-    echo -e " ۴. تانل متصل شده و تمامی پورت‌ها به صورت خودکار فوروارد می‌شوند!"
+    echo -e "${YELLOW}💻 CLI Management Menu:${NC} Type ${BOLD}nora${NC} in your terminal."
+    echo -e "${MAGENTA}------------------------------------------------------------------${NC}"
+    echo -e "${YELLOW}Quick Connection Guide:${NC}"
+    echo -e " 1. Open Foreign (Kharej) server panel and enter Iran IP."
+    echo -e " 2. Click 'Generate Connection Hash' and copy the NORA:// code."
+    echo -e " 3. Open Iran server panel, paste hash under 'Quick Connect' and click Connect."
+    echo -e " 4. Tunnel connects instantly with automatic port forwarding!"
     echo -e "${GREEN}==================================================================${NC}"
 }
 
