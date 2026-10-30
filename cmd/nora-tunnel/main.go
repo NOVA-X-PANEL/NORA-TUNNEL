@@ -18,8 +18,8 @@ import (
 )
 
 var (
-	Version   = "1.0.0"
-	BuildDate = "2026-10-30"
+	Version   = "1.1.2"
+	BuildDate = ""
 )
 
 func main() {

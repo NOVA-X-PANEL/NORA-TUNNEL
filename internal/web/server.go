@@ -296,8 +296,8 @@ func (s *Server) handleCreateTunnel(w http.ResponseWriter, r *http.Request) {
 	if req.ControlPort <= 0 {
 		req.ControlPort = 3080
 	}
-	if len(req.Ports) == 0 {
-		req.Ports = []string{"443", "2053", "2083", "8080"}
+	if req.Ports == nil {
+		req.Ports = []string{}
 	}
 
 	// Update configuration

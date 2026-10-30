@@ -1242,10 +1242,12 @@
           </div>
         </div>
 
-        <div class="form-group">
-          <label class="form-label" data-i18n="ports_label">پورت‌های مورد نظر جهت فوروارد (جداشده با کاما):</label>
-          <input type="text" class="form-input" id="initial-ports-input" placeholder="مثال: 443, 2053, 8080 یا رِنج 10000-10050" data-i18n-ph="ports_ph">
-          <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;" data-i18n="ports_hint">پورت‌های مورد نیاز پنل یا اینباند خود را وارد کنید (بدون پورت پیش‌فرض).</div>
+        <div style="background: rgba(0, 245, 212, 0.05); border: 1px dashed rgba(0, 245, 212, 0.3); border-radius: 12px; padding: 14px 16px; margin-bottom: 20px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+            <span style="font-size: 16px;">💡</span>
+            <strong style="font-size: 13px; color: var(--neon-cyan);" data-i18n="tunnel_flow_step1_title">مرحله ۱: برقراری تانل با هش (بدون نیاز به پورت)</strong>
+          </div>
+          <div style="font-size: 12px; color: var(--text-muted); line-height: 1.6;" data-i18n="tunnel_flow_step1_desc">در اتصال اولیه نیازی به وارد کردن هیچ پورتی نیست. کد هش را تولید کرده و در سرور ایران متصل کنید. پس از اتصال، پورت‌های مورد نظر خود را در تب «مدیریت پورت‌ها» در سرور ایران فوروارد کنید.</div>
         </div>
 
         <button class="btn btn-primary" onclick="generateHashAction()">
@@ -1303,6 +1305,14 @@
 
     <!-- TAB 2: PORT FORWARDING -->
     <div id="tab-ports" class="tab-content">
+      <div style="background: rgba(0, 245, 212, 0.05); border: 1px dashed rgba(0, 245, 212, 0.3); border-radius: 12px; padding: 14px 16px; margin-bottom: 18px;">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+          <span style="font-size: 16px;">🎯</span>
+          <strong style="font-size: 13px; color: var(--neon-cyan);" data-i18n="tunnel_flow_step2_title">مرحله ۲: فوروارد پورت‌ها در سرور ایران</strong>
+        </div>
+        <div style="font-size: 12px; color: var(--text-muted); line-height: 1.6;" data-i18n="tunnel_flow_step2_desc">پس از اتصال موفق تانل، هر پورتی که نیاز دارید (مانند 443، 2053، یا رِنج 10000-10050) را در کادر زیر وارد کنید. ترافیک ورودی به این پورت‌ها در سرور ایران فوراً از طریق تانل به سرور خارج هدایت می‌شود.</div>
+      </div>
+
       <div class="card">
         <div class="card-title" data-i18n="add_port_title">🔌 افزودن پورت فورواردینگ جدید</div>
         <div class="card-desc" data-i18n="add_port_desc">
@@ -1394,6 +1404,11 @@
   <script>
     const i18n = {
       fa: {
+        tunnel_flow_step1_title: "مرحله ۱: برقراری تانل با هش (بدون نیاز به پورت)",
+        tunnel_flow_step1_desc: "در اتصال اولیه نیازی به وارد کردن هیچ پورتی نیست. کد هش را تولید کرده و در سرور ایران متصل کنید. پس از اتصال، پورت‌های مورد نظر خود را در تب «مدیریت پورت‌ها» در سرور ایران فوروارد کنید.",
+        tunnel_flow_step2_title: "مرحله ۲: فوروارد پورت‌ها در سرور ایران",
+        tunnel_flow_step2_desc: "پس از اتصال موفق تانل، هر پورتی که نیاز دارید (مانند 443، 2053، یا رِنج 10000-10050) را در کادر زیر وارد کنید. ترافیک ورودی به این پورت‌ها در سرور ایران فوراً از طریق تانل به سرور خارج هدایت می‌شود.",
+
         toast_ports_invalid: "لطفاً حداقل یک پورت معتبر وارد کنید.",
         toast_enter_hash: "لطفاً هش اتصال NORA را وارد کنید.",
         toast_applying_hash: "در حال اعمال تنظیمات و اتصال به تانل...",
@@ -1587,6 +1602,11 @@
         toast_port_deleted: "پورت {port} با موفقیت حذف شد."
       },
       en: {
+        tunnel_flow_step1_title: "Step 1: Connect Tunnel via Hash (No Ports Needed)",
+        tunnel_flow_step1_desc: "No ports are required during initial tunnel setup. Generate the hash and connect it on your Iran server. After the tunnel is established, add your desired ports in the 'Port Forwarding' tab on your Iran server.",
+        tunnel_flow_step2_title: "Step 2: Forward Ports on Iran Server",
+        tunnel_flow_step2_desc: "After establishing the tunnel, enter any ports you need (e.g. 443, 2053, or a range like 10000-10050) below. Inbound traffic reaching these ports on your Iran server will immediately route through the tunnel to your Foreign server.",
+
         toast_ports_invalid: "Please enter at least one valid port.",
         toast_enter_hash: "Please paste the NORA connection hash.",
         toast_applying_hash: "Applying config and connecting tunnel...",
@@ -2136,22 +2156,12 @@
       const iranIP = document.getElementById('iran-ip-input').value.trim();
       if (!iranIP) {
         showToast(t('toast_enter_iran_ip'), 'error');
+        document.getElementById('iran-ip-input').focus();
         return;
       }
 
       const transport = document.getElementById('transport-select').value;
       const ctrlPort = parseInt(document.getElementById('ctrl-port-input').value) || 3080;
-      const portsRaw = document.getElementById('initial-ports-input').value.trim();
-      if (!portsRaw) {
-        showToast(t('toast_enter_ports'), 'error');
-        document.getElementById('initial-ports-input').focus();
-        return;
-      }
-      const initialPorts = portsRaw.split(',').map(s => s.trim()).filter(Boolean);
-      if (initialPorts.length === 0) {
-        showToast(t('toast_ports_invalid'), 'error');
-        return;
-      }
 
       try {
         const res = await authFetch('/api/tunnel/create', {
@@ -2162,7 +2172,7 @@
             mode: selectedMode,
             transport: transport,
             control_port: ctrlPort,
-            ports: initialPorts
+            ports: []
           })
         });
 
