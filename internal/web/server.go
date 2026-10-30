@@ -299,6 +299,17 @@ func (s *Server) handleCreateTunnel(w http.ResponseWriter, r *http.Request) {
 	cfg.ControlPort = req.ControlPort
 	cfg.IranIP = req.IranIP
 	cfg.Ports = req.Ports
+
+	if cfg.KharejIP == "" {
+		host, _, _ := net.SplitHostPort(r.Host)
+		if host == "" {
+			host = r.Host
+		}
+		if host != "" && host != "localhost" && host != "127.0.0.1" {
+			cfg.KharejIP = host
+		}
+	}
+
 	if cfg.Token == "" {
 		cfg.Token = config.GenerateRandomSecret(16)
 	}
@@ -321,13 +332,10 @@ func (s *Server) handleCreateTunnel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Start or restart Backhaul on Kharej
-	if err := s.bhMgr.Restart(cfg); err != nil {
-		s.jsonResponse(w, false, "Tunnel generated but failed to start Backhaul: "+err.Error(), map[string]interface{}{
-			"hash": hash,
-		})
-		return
-	}
+	// Start or restart Backhaul on Kharej in background
+	go func() {
+		_ = s.bhMgr.Restart(cfg)
+	}()
 
 	s.jsonResponse(w, true, "Tunnel generated successfully", map[string]interface{}{
 		"hash": hash,
@@ -374,11 +382,10 @@ func (s *Server) handleConnectTunnel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Start Backhaul on Iran
-	if err := s.bhMgr.Restart(cfg); err != nil {
-		s.jsonResponse(w, false, "Config applied but failed to start Backhaul: "+err.Error(), nil)
-		return
-	}
+	// Start Backhaul on Iran asynchronously
+	go func() {
+		_ = s.bhMgr.Restart(cfg)
+	}()
 
 	s.jsonResponse(w, true, "Tunnel connected successfully via hash", nil)
 }

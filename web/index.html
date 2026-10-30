@@ -762,16 +762,21 @@
         </button>
 
         <!-- Generated Hash Display -->
-        <div class="hash-display-box" id="hash-box" style="display: none;">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div class="hash-display-box" id="hash-box" style="display: none; flex-direction: column; gap: 10px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
             <strong style="color: #fff; font-size: 14px;">🔑 کد هش اختصاصی تانل (برای سرور ایران):</strong>
-            <button class="btn btn-secondary" style="padding: 6px 14px; font-size: 12px;" onclick="copyHash()">
-              📋 کپی کردن هش
-            </button>
+            <div style="display: flex; gap: 8px;">
+              <button type="button" class="btn btn-primary" style="padding: 6px 14px; font-size: 12px;" onclick="copyHash()">
+                📋 کپی هش در حافظه
+              </button>
+              <button type="button" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;" onclick="selectHashText()">
+                🔍 انتخاب متن
+              </button>
+            </div>
           </div>
-          <div class="hash-text" id="generated-hash-text"></div>
+          <textarea class="hash-text" id="generated-hash-text" readonly onclick="selectHashText()" rows="3" style="width: 100%; border: 1px solid var(--border-color); background: rgba(0,0,0,0.5); color: var(--neon-cyan); border-radius: 8px; padding: 10px; font-family: monospace; font-size: 12px; resize: none; direction: ltr; text-align: left;" placeholder="کد هش در اینجا نمایش داده خواهد شد..."></textarea>
           <div style="font-size: 12px; color: var(--text-muted);">
-            وارد پنل سرور ایران شوید، به تب «راه‌اندازی» بروید و این هش را در بخش «اتصال سریع» وارد کنید.
+            💡 با زدن دکمه کپی یا یک‌بار کلیک روی کادر بالا، متن به صورت خودکار انتخاب می‌شود. سپس آن را در پنل سرور ایران پیست کنید.
           </div>
         </div>
       </div>
@@ -960,6 +965,16 @@
       }
     }
 
+    async function authFetch(url, options = {}) {
+      options.headers = options.headers || {};
+      const token = localStorage.getItem('nora_token');
+      if (token && !options.headers['Authorization']) {
+        options.headers['Authorization'] = 'Bearer ' + token;
+      }
+      options.credentials = 'include';
+      return fetch(url, options);
+    }
+
     async function doLogin() {
       const u = document.getElementById('login-user').value.trim();
       const p = document.getElementById('login-pass').value.trim();
@@ -973,10 +988,14 @@
         const res = await fetch('/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({ username: u, password: p })
         });
         const data = await res.json();
         if (data.success) {
+          if (data.obj && data.obj.token) {
+            localStorage.setItem('nora_token', data.obj.token);
+          }
           document.getElementById('login-overlay').style.display = 'none';
           showToast('ورود با موفقیت انجام شد.', 'success');
           refreshStatus();
@@ -989,13 +1008,14 @@
     }
 
     async function doLogout() {
-      await fetch('/api/auth/logout', { method: 'POST' });
+      localStorage.removeItem('nora_token');
+      await authFetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
       document.getElementById('login-overlay').style.display = 'flex';
     }
 
     async function refreshStatus() {
       try {
-        const res = await fetch('/api/status');
+        const res = await authFetch('/api/status');
         if (res.status === 401) {
           document.getElementById('login-overlay').style.display = 'flex';
           return;
@@ -1046,8 +1066,15 @@
         if (cfg.iran_ip && !document.getElementById('iran-ip-input').value) {
           document.getElementById('iran-ip-input').value = cfg.iran_ip;
         }
-        if (cfg.connection_hash && !document.getElementById('generated-hash-text').innerText) {
-          document.getElementById('generated-hash-text').innerText = cfg.connection_hash;
+        if (cfg.connection_hash) {
+          const hashEl = document.getElementById('generated-hash-text');
+          if (hashEl) {
+            if (hashEl.tagName === 'TEXTAREA' || hashEl.tagName === 'INPUT') {
+              hashEl.value = cfg.connection_hash;
+            } else {
+              hashEl.innerText = cfg.connection_hash;
+            }
+          }
           document.getElementById('hash-box').style.display = 'flex';
         }
       } catch (err) {
@@ -1098,7 +1125,7 @@
       const initialPorts = document.getElementById('initial-ports-input').value.split(',').map(s => s.trim()).filter(Boolean);
 
       try {
-        const res = await fetch('/api/tunnel/create', {
+        const res = await authFetch('/api/tunnel/create', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -1112,7 +1139,14 @@
 
         const data = await res.json();
         if (data.success) {
-          document.getElementById('generated-hash-text').innerText = data.obj.hash;
+          const hashEl = document.getElementById('generated-hash-text');
+          if (hashEl) {
+            if (hashEl.tagName === 'TEXTAREA' || hashEl.tagName === 'INPUT') {
+              hashEl.value = data.obj.hash;
+            } else {
+              hashEl.innerText = data.obj.hash;
+            }
+          }
           document.getElementById('hash-box').style.display = 'flex';
           showToast('هش اتصال با موفقیت تولید شد و سرور خارج آماده اتصال است.', 'success');
           refreshStatus();
@@ -1124,41 +1158,87 @@
       }
     }
 
+    function selectHashText() {
+      const el = document.getElementById('generated-hash-text');
+      if (el) {
+        el.focus();
+        el.select();
+        showToast('متن هش انتخاب شد (Ctrl+C بزنید)', 'info');
+      }
+    }
+
     function copyHash() {
-      const txt = document.getElementById('generated-hash-text').innerText;
-      navigator.clipboard.writeText(txt).then(() => {
-        showToast('هش اتصال در کلیپ‌بورد کپی شد!', 'success');
-      });
+      const el = document.getElementById('generated-hash-text');
+      const txt = (el ? (el.value || el.innerText || '') : '').trim();
+      if (!txt) {
+        showToast('هنوز هشی تولید نشده است.', 'error');
+        return;
+      }
+
+      if (el) {
+        el.focus();
+        el.select();
+      }
+
+      let success = false;
+      try {
+        success = document.execCommand('copy');
+      } catch (err) {
+        success = false;
+      }
+
+      if (!success && navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(txt).then(() => {
+          showToast('هش اتصال در کلیپ‌بورد کپی شد! 📋', 'success');
+        }).catch(() => {
+          window.prompt('لطفاً متن هش زیر را دستی کپی کنید (Ctrl+C):', txt);
+        });
+        return;
+      }
+
+      if (success) {
+        showToast('هش اتصال در کلیپ‌بورد کپی شد! 📋', 'success');
+      } else {
+        window.prompt('لطفاً متن هش زیر را دستی کپی کنید (Ctrl+C):', txt);
+      }
     }
 
     async function connectWithHashAction() {
-      const hashStr = document.getElementById('paste-hash-input').value.trim();
+      const hashInput = document.getElementById('paste-hash-input');
+      const hashStr = (hashInput ? hashInput.value : '').trim();
       if (!hashStr) {
         showToast('لطفاً هش اتصال NORA را وارد کنید.', 'error');
         return;
       }
 
+      showToast('در حال اعمال تنظیمات و اتصال به تانل...', 'info');
+
       try {
-        const res = await fetch('/api/tunnel/connect', {
+        const res = await authFetch('/api/tunnel/connect', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ hash: hashStr })
         });
+        if (res.status === 401) {
+          document.getElementById('login-overlay').style.display = 'flex';
+          showToast('نشست منقضی شده، لطفاً مجدداً وارد شوید.', 'error');
+          return;
+        }
         const data = await res.json();
         if (data.success) {
-          showToast('تانل در سرور ایران با موفقیت فعال و متصل شد!', 'success');
-          refreshStatus();
+          showToast('تانل در سرور ایران با موفقیت فعال و متصل شد! 🚀', 'success');
+          setTimeout(refreshStatus, 1000);
         } else {
           showToast(data.msg || 'خطا در اعمال هش تانل', 'error');
         }
       } catch (e) {
-        showToast('خطا در اعمال هش: ' + e, 'error');
+        showToast('خطا در اعمال هش: ' + (e.message || e), 'error');
       }
     }
 
     async function restartTunnelAction() {
       try {
-        const res = await fetch('/api/tunnel/restart', { method: 'POST' });
+        const res = await authFetch('/api/tunnel/restart', { method: 'POST' });
         const data = await res.json();
         if (data.success) {
           showToast('سرویس تانل با موفقیت ری‌استارت شد.', 'success');
@@ -1174,7 +1254,7 @@
     async function stopTunnelAction() {
       if (!confirm('آیا از توقف سرویس تانل اطمینان دارید؟')) return;
       try {
-        const res = await fetch('/api/tunnel/stop', { method: 'POST' });
+        const res = await authFetch('/api/tunnel/stop', { method: 'POST' });
         const data = await res.json();
         if (data.success) {
           showToast('سرویس تانل متوقف شد.', 'info');
@@ -1188,7 +1268,7 @@
     async function testPingAction() {
       showToast('در حال سنجش پینگ و سلامت ارتباط...', 'info');
       try {
-        const res = await fetch('/api/ping');
+        const res = await authFetch('/api/ping');
         const data = await res.json();
         if (data.success) {
           showToast(`تاخیر ارتباط با سرور مقابل: ${data.obj.latency_ms} میلی‌ثانیه`, 'success');
@@ -1206,7 +1286,7 @@
       if (!portVal) return;
 
       try {
-        const res = await fetch('/api/ports/add', {
+        const res = await authFetch('/api/ports/add', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ port: portVal })
@@ -1232,7 +1312,7 @@
     async function quickAddAllStandard() {
       const ports = ['443', '2053', '2083', '8080', '8443', '2087', '2096'];
       for (const p of ports) {
-        await fetch('/api/ports/add', {
+        await authFetch('/api/ports/add', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ port: p })
@@ -1245,7 +1325,7 @@
     async function deletePortAction(port) {
       if (!confirm(`آیا از حذف پورت ${port} اطمینان دارید؟`)) return;
       try {
-        const res = await fetch('/api/ports/delete', {
+        const res = await authFetch('/api/ports/delete', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ port: port })
@@ -1262,7 +1342,7 @@
 
     async function fetchLogs() {
       try {
-        const res = await fetch('/api/logs');
+        const res = await authFetch('/api/logs');
         const data = await res.json();
         if (data.success) {
           const container = document.getElementById('logs-container');
@@ -1293,7 +1373,7 @@
       }
 
       try {
-        const res = await fetch('/api/settings/password', {
+        const res = await authFetch('/api/settings/password', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username: u, password: p })
