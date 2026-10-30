@@ -156,12 +156,24 @@
       50% { transform: scale(1.3); opacity: 0.7; }
     }
 
-    /* Metric Cards Grid */
+    /* Metric Cards Grid (Symmetric 3x2 on desktop) */
     .metrics-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      grid-template-columns: repeat(3, 1fr);
       gap: 18px;
       margin-bottom: 24px;
+    }
+
+    @media (max-width: 992px) {
+      .metrics-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 640px) {
+      .metrics-grid {
+        grid-template-columns: 1fr;
+      }
     }
 
     .metric-card {
@@ -597,6 +609,219 @@
       .top-stats { width: 100%; justify-content: space-between; }
       .metrics-grid { grid-template-columns: 1fr; }
     }
+
+    /* Hamburger Button */
+    .hamburger-btn {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      position: relative;
+    }
+    .hamburger-btn:hover {
+      background: rgba(0, 245, 212, 0.12);
+      border-color: var(--neon-cyan);
+      box-shadow: var(--glow-cyan);
+    }
+    .hamburger-btn span {
+      width: 20px;
+      height: 2px;
+      background: var(--neon-cyan);
+      border-radius: 2px;
+      transition: all 0.25s ease;
+    }
+    .hamburger-badge {
+      position: absolute;
+      top: -3px;
+      right: -3px;
+      width: 10px;
+      height: 10px;
+      background: var(--neon-pink);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--neon-pink);
+      display: none;
+    }
+
+    /* Drawer Overlay */
+    .drawer-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.65);
+      backdrop-filter: blur(6px);
+      z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+    .drawer-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* Slide-out Drawer */
+    .drawer-menu {
+      position: fixed;
+      top: 0;
+      right: -340px;
+      width: 320px;
+      height: 100%;
+      background: rgba(12, 14, 22, 0.96);
+      backdrop-filter: blur(24px);
+      border-left: 1px solid var(--border-color);
+      z-index: 1001;
+      box-shadow: -10px 0 40px rgba(0, 0, 0, 0.7);
+      transition: right 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+      padding: 24px 20px;
+      direction: rtl;
+    }
+    .drawer-menu.active {
+      right: 0;
+    }
+    .drawer-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 18px;
+      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 16px;
+    }
+    .drawer-close {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-color);
+      color: #fff;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    .drawer-close:hover {
+      background: var(--danger);
+      border-color: var(--danger);
+    }
+    .drawer-content {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      overflow-y: auto;
+    }
+    .drawer-section-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      margin: 16px 0 8px;
+      padding: 0 4px;
+      font-weight: 700;
+    }
+    .drawer-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      color: var(--text-main);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: transparent;
+      border: 1px solid transparent;
+      margin-bottom: 4px;
+    }
+    .drawer-item:hover {
+      background: rgba(255, 255, 255, 0.05);
+      color: #fff;
+    }
+    .drawer-item.highlight {
+      background: rgba(0, 245, 212, 0.08);
+      border-color: rgba(0, 245, 212, 0.25);
+    }
+    .drawer-item.highlight:hover {
+      background: rgba(0, 245, 212, 0.16);
+      border-color: var(--neon-cyan);
+      box-shadow: 0 0 16px rgba(0, 245, 212, 0.25);
+    }
+    .drawer-item-icon {
+      font-size: 18px;
+      width: 24px;
+      text-align: center;
+    }
+    .badge-new {
+      background: var(--neon-pink);
+      color: #fff;
+      font-size: 10px;
+      padding: 2px 7px;
+      border-radius: 999px;
+      font-weight: 700;
+      box-shadow: 0 0 8px var(--neon-pink);
+    }
+
+    /* Modal Overlay & Card */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(10px);
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      animation: fadeIn 0.2s ease;
+    }
+    .modal-card {
+      background: rgba(16, 18, 28, 0.96);
+      border: 1px solid var(--border-glow);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), var(--glow-cyan);
+      border-radius: 20px;
+      max-width: 480px;
+      width: 100%;
+      padding: 26px;
+      direction: rtl;
+    }
+    .update-info-box {
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 14px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      font-size: 13px;
+    }
+    .update-version-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .progress-bar-inner {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--neon-cyan), var(--neon-pink));
+      border-radius: 999px;
+      animation: progressAnim 2s infinite linear;
+    }
+    @keyframes progressAnim {
+      0% { width: 15%; margin-right: 0%; }
+      50% { width: 70%; margin-right: 15%; }
+      100% { width: 15%; margin-right: 85%; }
+    }
   </style>
 </head>
 <body>
@@ -628,6 +853,109 @@
     </div>
   </div>
 
+  <!-- Drawer Overlay -->
+  <div class="drawer-overlay" id="drawer-overlay" onclick="closeDrawer()"></div>
+
+  <!-- Slide-out Drawer Menu (Hamburger) -->
+  <div class="drawer-menu" id="drawer-menu">
+    <div class="drawer-header">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <div class="brand-icon" style="width: 34px; height: 34px; font-size: 16px;">⚡</div>
+        <div>
+          <div style="font-weight: 800; font-size: 15px; color: #fff;">NORA TUNNEL</div>
+          <div style="font-size: 11px; color: var(--text-muted);" id="drawer-version-tag">نسخه در حال بارگذاری...</div>
+        </div>
+      </div>
+      <button class="drawer-close" onclick="closeDrawer()" title="بستن منو">✕</button>
+    </div>
+
+    <div class="drawer-content">
+      <div class="drawer-section-title">ناوبری و صفحات</div>
+      <a class="drawer-item" onclick="drawerNav('setup')">
+        <span class="drawer-item-icon">⚡</span>
+        <span>راه‌اندازی و اتصال هش</span>
+      </a>
+      <a class="drawer-item" onclick="drawerNav('ports')">
+        <span class="drawer-item-icon">🔌</span>
+        <span>مدیریت پورت‌ها (Port Forwarding)</span>
+      </a>
+      <a class="drawer-item" onclick="drawerNav('logs')">
+        <span class="drawer-item-icon">📜</span>
+        <span>لاگ زنده و عیب‌یابی</span>
+      </a>
+      <a class="drawer-item" onclick="drawerNav('settings')">
+        <span class="drawer-item-icon">⚙️</span>
+        <span>تنظیمات و تغییر پسورد</span>
+      </a>
+
+      <div class="drawer-section-title">سیستم و ابزارها</div>
+      <a class="drawer-item highlight" onclick="openUpdateModal()">
+        <span class="drawer-item-icon">🚀</span>
+        <div style="flex: 1;">
+          <div style="font-weight: 700;">بروزرسانی پنل (System Update)</div>
+          <div style="font-size: 11px; color: var(--neon-cyan);">بروزرسانی آنلاین مستقیم از پنل</div>
+        </div>
+        <span class="badge-new" id="drawer-update-badge" style="display: none;">جدید</span>
+      </a>
+      <a class="drawer-item" onclick="restartTunnelAction(); closeDrawer();">
+        <span class="drawer-item-icon">🔄</span>
+        <span>ری‌استارت سرویس تانل</span>
+      </a>
+      <a class="drawer-item" onclick="testPingAction(); closeDrawer();">
+        <span class="drawer-item-icon">📡</span>
+        <span>سنجش دستی پینگ سرورها</span>
+      </a>
+
+      <div style="margin-top: auto; padding-top: 24px;">
+        <a class="drawer-item" style="color: var(--danger);" onclick="doLogout()">
+          <span class="drawer-item-icon">🚪</span>
+          <span>خروج از پنل</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Online Update Modal -->
+  <div class="modal-overlay" id="update-modal" style="display: none;">
+    <div class="modal-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <div style="font-size: 17px; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 20px;">🚀</span> بروزرسانی پنل NORA TUNNEL
+        </div>
+        <button class="drawer-close" onclick="closeUpdateModal()">✕</button>
+      </div>
+
+      <div class="update-info-box">
+        <div class="update-version-row">
+          <span>نسخه فعلی نصب‌شده:</span>
+          <strong id="modal-current-version" style="color: var(--text-muted);">...</strong>
+        </div>
+        <div class="update-version-row">
+          <span>آخرین نسخه در گیت‌هاب:</span>
+          <strong id="modal-latest-version" style="color: var(--neon-cyan);">در حال بررسی...</strong>
+        </div>
+      </div>
+
+      <div id="update-status-msg" style="margin: 15px 0; font-size: 13px; color: var(--text-muted); line-height: 1.6;">
+        با تایید شما، آخرین نسخه پنل مستقیماً از گیت‌هاب دانلود و بدون قطعی جایگزین می‌شود.
+      </div>
+
+      <div id="update-progress-bar" style="display: none; margin: 15px 0;">
+        <div style="font-size: 12px; color: var(--neon-cyan); margin-bottom: 6px;" id="update-progress-text">در حال دانلود پکیج و بروزرسانی...</div>
+        <div style="height: 6px; background: rgba(255,255,255,0.1); border-radius: 999px; overflow: hidden;">
+          <div class="progress-bar-inner"></div>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+        <button type="button" class="btn btn-secondary" onclick="closeUpdateModal()">انصراف</button>
+        <button type="button" class="btn btn-primary" id="btn-start-update" onclick="startPanelUpdate()">
+          <span>⚡ شروع بروزرسانی آنلاین</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <div class="app-container">
 
     <!-- Top Header -->
@@ -651,39 +979,88 @@
           <span id="status-text">بررسی وضعیت...</span>
         </div>
 
-        <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; border-radius: 999px;" onclick="doLogout()">🚪 خروج</button>
+        <button class="hamburger-btn" onclick="toggleDrawer()" title="منوی امکانات و بروزرسانی">
+          <span></span>
+          <span></span>
+          <span></span>
+          <span class="hamburger-badge" id="header-update-badge"></span>
+        </button>
       </div>
     </header>
 
-    <!-- Metrics Cards -->
+    <!-- Metrics Cards (6 Cards) -->
     <div class="metrics-grid">
+      <!-- 1. Ping between two servers -->
       <div class="metric-card">
-        <div class="metric-label">📡 تاخیر زنده (Latency RTT)</div>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div class="metric-label">📡 پینگ بین دو سرور</div>
+          <span id="ping-status-pill" style="font-size: 11px; padding: 2px 8px; border-radius: 999px; background: rgba(255,255,255,0.06); color: var(--text-muted);">زنده</span>
+        </div>
         <div class="metric-val">
           <span id="metric-ping">--</span>
           <span class="metric-unit">ms</span>
         </div>
-      </div>
-
-      <div class="metric-card">
-        <div class="metric-label">🔄 معماری و حالت تانل</div>
-        <div class="metric-val" style="font-size: 18px;" id="metric-mode">
-          Backhaul Reverse
+        <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" id="ping-peer-info">
+          سرور مقابل: در انتظار اتصال
         </div>
       </div>
 
+      <!-- 2. Total Server Traffic -->
+      <div class="metric-card">
+        <div class="metric-label">📊 ترافیک کل سرور</div>
+        <div class="metric-val">
+          <span id="metric-traffic-total" dir="ltr" style="display: inline-block;">0 B</span>
+        </div>
+        <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px; display: flex; gap: 12px; align-items: center;">
+          <span>📥 دانلود: <strong id="metric-traffic-rx" dir="ltr" style="color: var(--neon-cyan); display: inline-block;">0 B</strong></span>
+          <span>📤 آپلود: <strong id="metric-traffic-tx" dir="ltr" style="color: var(--neon-yellow); display: inline-block;">0 B</strong></span>
+        </div>
+      </div>
+
+      <!-- 3. Live Bandwidth Speed -->
+      <div class="metric-card">
+        <div class="metric-label">⚡ سرعت لحظه‌ای شبکه (Live)</div>
+        <div class="metric-val" style="font-size: 18px; color: var(--neon-cyan);">
+          <span id="metric-speed-rx" dir="ltr" style="display: inline-block;">0 B/s</span>
+          <span class="metric-unit" style="font-size: 11px; color: var(--text-muted);">⬇️ دانلود</span>
+        </div>
+        <div style="font-size: 12px; color: var(--neon-yellow); margin-top: 4px;">
+          <span id="metric-speed-tx" dir="ltr" style="display: inline-block;">0 B/s</span>
+          <span style="font-size: 11px; color: var(--text-muted);">⬆️ آپلود</span>
+        </div>
+      </div>
+
+      <!-- 4. Mode & Transport -->
+      <div class="metric-card">
+        <div class="metric-label">🔄 معماری و حالت تانل</div>
+        <div class="metric-val" style="font-size: 17px;" id="metric-mode">
+          Backhaul Reverse
+        </div>
+        <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;" id="metric-transport-info">
+          پروتکل انتقال: tcpmux
+        </div>
+      </div>
+
+      <!-- 5. Forwarded Ports -->
       <div class="metric-card">
         <div class="metric-label">🔌 پورت‌های فوروارد فعال</div>
         <div class="metric-val">
           <span id="metric-ports-count">0</span>
           <span class="metric-unit">پورت</span>
         </div>
+        <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+          مپ‌شده و آماده تبادل داده
+        </div>
       </div>
 
+      <!-- 6. Uptime & Version -->
       <div class="metric-card">
-        <div class="metric-label">⏱️ مدت زمان اتصال (Uptime)</div>
-        <div class="metric-val" style="font-size: 19px;" id="metric-uptime">
+        <div class="metric-label">⏱️ مدت زمان آنلاین (Uptime)</div>
+        <div class="metric-val" style="font-size: 18px;" id="metric-uptime">
           00:00:00
+        </div>
+        <div style="font-size: 11px; color: var(--neon-cyan); margin-top: 4px;" id="metric-version-text">
+          نسخه NORA: v1.0.8
         </div>
       </div>
     </div>
@@ -1044,9 +1421,85 @@
         const roleText = role === 'kharej' ? '🌍 سرور خارج (Foreign)' : role === 'iran' ? '🇮🇷 سرور ایران (Iran)' : 'آماده پیکربندی';
         document.getElementById('server-role-text').innerText = roleText;
 
-        // Metrics
-        document.getElementById('metric-ping').innerText = st.last_ping_ms > 0 ? st.last_ping_ms : '--';
+        // Ping
+        const pingEl = document.getElementById('metric-ping');
+        const pingPill = document.getElementById('ping-status-pill');
+        const pingPeer = document.getElementById('ping-peer-info');
+
+        let targetPeer = cfg.iran_ip || '';
+        let targetLabel = 'سرور ایران';
+        if (cfg.role === 'iran') {
+          targetPeer = cfg.kharej_ip || '';
+          targetLabel = 'سرور خارج';
+        }
+
+        if (st.last_ping_ms && st.last_ping_ms > 0) {
+          pingEl.innerText = st.last_ping_ms;
+          if (st.last_ping_ms < 80) {
+            pingEl.style.color = 'var(--neon-cyan)';
+            if (pingPill) {
+              pingPill.innerText = '🟢 عالی و پایدار';
+              pingPill.style.color = 'var(--neon-cyan)';
+            }
+          } else if (st.last_ping_ms < 160) {
+            pingEl.style.color = 'var(--warning)';
+            if (pingPill) {
+              pingPill.innerText = '🟡 تاخیر مناسب';
+              pingPill.style.color = 'var(--warning)';
+            }
+          } else {
+            pingEl.style.color = 'var(--danger)';
+            if (pingPill) {
+              pingPill.innerText = '🔴 تاخیر بالا';
+              pingPill.style.color = 'var(--danger)';
+            }
+          }
+        } else {
+          pingEl.innerText = '--';
+          pingEl.style.color = 'var(--text-muted)';
+          if (pingPill) {
+            pingPill.innerText = '🔴 عدم برقراری پینگ';
+            pingPill.style.color = 'var(--danger)';
+          }
+        }
+
+        if (pingPeer) {
+          if (targetPeer) {
+            pingPeer.innerText = `مقصد: ${targetLabel} (${targetPeer}:${cfg.control_port || 3080})`;
+          } else {
+            pingPeer.innerText = 'سرور مقابل: در انتظار پیکربندی هش';
+          }
+        }
+
+        // Traffic Stats
+        const tr = obj.traffic || {};
+        if (document.getElementById('metric-traffic-total')) {
+          document.getElementById('metric-traffic-total').innerText = tr.total_formatted || '0 B';
+          document.getElementById('metric-traffic-rx').innerText = tr.rx_formatted || '0 B';
+          document.getElementById('metric-traffic-tx').innerText = tr.tx_formatted || '0 B';
+        }
+        if (document.getElementById('metric-speed-rx')) {
+          document.getElementById('metric-speed-rx').innerText = tr.rx_speed_str || '0 B/s';
+          document.getElementById('metric-speed-tx').innerText = tr.tx_speed_str || '0 B/s';
+        }
+
+        // Version tags
+        const verStr = 'v' + (obj.version || '1.0.8').replace(/^v/, '');
+        if (document.getElementById('metric-version-text')) {
+          document.getElementById('metric-version-text').innerText = 'نگارش NORA: ' + verStr;
+        }
+        if (document.getElementById('drawer-version-tag')) {
+          document.getElementById('drawer-version-tag').innerText = 'نسخه فعال ' + verStr;
+        }
+        if (document.getElementById('modal-current-version')) {
+          document.getElementById('modal-current-version').innerText = verStr;
+        }
+
+        // Mode and Transport
         document.getElementById('metric-mode').innerText = (cfg.mode === 'direct' ? 'Backhaul Direct' : 'Backhaul Reverse');
+        if (document.getElementById('metric-transport-info')) {
+          document.getElementById('metric-transport-info').innerText = 'پروتکل انتقال: ' + (cfg.transport || 'tcpmux');
+        }
 
         // Ports
         currentPorts = cfg.ports || [];
@@ -1389,9 +1842,136 @@
       }
     }
 
+    // Drawer (Hamburger Menu) Management
+    function toggleDrawer() {
+      const drawer = document.getElementById('drawer-menu');
+      if (drawer.classList.contains('active')) {
+        closeDrawer();
+      } else {
+        openDrawer();
+      }
+    }
+
+    function openDrawer() {
+      document.getElementById('drawer-menu').classList.add('active');
+      document.getElementById('drawer-overlay').classList.add('active');
+      checkVersionBadge();
+    }
+
+    function closeDrawer() {
+      document.getElementById('drawer-menu').classList.remove('active');
+      document.getElementById('drawer-overlay').classList.remove('active');
+    }
+
+    function drawerNav(tabName) {
+      closeDrawer();
+      const btn = document.querySelector(`.tab-btn[onclick*="${tabName}"]`);
+      switchTab(tabName, btn);
+    }
+
+    // System Update Modal Management
+    async function openUpdateModal() {
+      closeDrawer();
+      const modal = document.getElementById('update-modal');
+      modal.style.display = 'flex';
+      document.getElementById('update-progress-bar').style.display = 'none';
+      const startBtn = document.getElementById('btn-start-update');
+      startBtn.disabled = false;
+      startBtn.style.display = 'inline-flex';
+
+      try {
+        const res = await authFetch('/api/system/version');
+        const data = await res.json();
+        if (data.success && data.obj) {
+          const cur = data.obj.current_version || '--';
+          const lat = data.obj.latest_version || '--';
+          document.getElementById('modal-current-version').innerText = 'v' + cur.replace(/^v/, '');
+          document.getElementById('modal-latest-version').innerText = 'v' + lat.replace(/^v/, '');
+
+          const statusMsg = document.getElementById('update-status-msg');
+          if (data.obj.has_update) {
+            statusMsg.innerHTML = `<span style="color: var(--neon-cyan); font-weight: bold;">⚡ نسخه جدید (${lat}) در دسترس است!</span><br>توصیه می‌شود پنل را جهت دریافت جدیدترین بهینه‌سازی‌ها و قابلیت‌ها بروزرسانی نمایید.`;
+          } else {
+            statusMsg.innerHTML = `<span style="color: var(--success); font-weight: bold;">✔ شما در حال استفاده از آخرین نسخه موجود هستید.</span><br>در صورت نیاز می‌توانید دکمه زیر را برای نصب مجدد آخرین نسخه بزنید.`;
+          }
+        }
+      } catch (e) {
+        console.error("Version check error:", e);
+      }
+    }
+
+    function closeUpdateModal() {
+      document.getElementById('update-modal').style.display = 'none';
+    }
+
+    async function startPanelUpdate() {
+      const btn = document.getElementById('btn-start-update');
+      const progressBox = document.getElementById('update-progress-bar');
+      const progressText = document.getElementById('update-progress-text');
+      const statusMsg = document.getElementById('update-status-msg');
+
+      btn.disabled = true;
+      btn.style.display = 'none';
+      progressBox.style.display = 'block';
+      progressText.innerText = 'در حال دانلود بسته بروزرسانی از مخزن گیت‌هاب...';
+      statusMsg.innerText = 'لطفاً صبور باشید، فایل باینری جدید دانلود شده و سرویس مجدداً راه‌اندازی می‌شود...';
+
+      try {
+        const res = await authFetch('/api/system/update', { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+          progressText.innerText = 'بروزرسانی با موفقیت انجام شد! در حال راه‌اندازی سرویس...';
+          showToast(data.msg || 'پنل بروزرسانی شد', 'success');
+
+          let countdown = 4;
+          const timer = setInterval(() => {
+            countdown--;
+            if (countdown <= 0) {
+              clearInterval(timer);
+              window.location.reload();
+            } else {
+              progressText.innerText = `در حال ورود به نسخه جدید تا ${countdown} ثانیه دیگر...`;
+            }
+          }, 1000);
+        } else {
+          progressBox.style.display = 'none';
+          btn.disabled = false;
+          btn.style.display = 'inline-flex';
+          statusMsg.innerHTML = `<span style="color: var(--danger); font-weight: bold;">خطا در بروزرسانی:</span> ${data.msg || 'مشکلی رخ داد'}`;
+          showToast(data.msg || 'خطا در بروزرسانی', 'error');
+        }
+      } catch (e) {
+        progressBox.style.display = 'none';
+        btn.disabled = false;
+        btn.style.display = 'inline-flex';
+        statusMsg.innerHTML = `<span style="color: var(--danger); font-weight: bold;">خطا در ارتباط:</span> ${e.message || e}`;
+        showToast('خطا در فراخوانی: ' + e, 'error');
+      }
+    }
+
+    async function checkVersionBadge() {
+      try {
+        const res = await authFetch('/api/system/version');
+        const data = await res.json();
+        if (data.success && data.obj) {
+          const badgeD = document.getElementById('drawer-update-badge');
+          const badgeH = document.getElementById('header-update-badge');
+          if (data.obj.has_update) {
+            if (badgeD) badgeD.style.display = 'inline-block';
+            if (badgeH) badgeH.style.display = 'block';
+          } else {
+            if (badgeD) badgeD.style.display = 'none';
+            if (badgeH) badgeH.style.display = 'none';
+          }
+        }
+      } catch (e) {}
+    }
+
     // Init & Polling
     refreshStatus();
+    checkVersionBadge();
     setInterval(refreshStatus, 3000);
+    setInterval(checkVersionBadge, 60000);
   </script>
 </body>
 </html>

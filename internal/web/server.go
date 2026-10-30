@@ -12,11 +12,14 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/NOVA-X-PANEL/NORA-TUNNEL/internal/backhaul"
 	"github.com/NOVA-X-PANEL/NORA-TUNNEL/internal/config"
+	"github.com/NOVA-X-PANEL/NORA-TUNNEL/internal/system"
+	"github.com/NOVA-X-PANEL/NORA-TUNNEL/internal/traffic"
 	"github.com/NOVA-X-PANEL/NORA-TUNNEL/internal/tunnel"
 )
 
@@ -44,6 +47,7 @@ func NewServer(cfgMgr *config.Manager, bhMgr *backhaul.Manager, version string) 
 		version: version,
 	}
 	s.registerRoutes()
+	go s.startBackgroundPing()
 	return s
 }
 
@@ -66,6 +70,8 @@ func (s *Server) registerRoutes() {
 	s.mux.HandleFunc("/api/ping", s.handlePing)
 	s.mux.HandleFunc("/api/logs", s.handleLogs)
 	s.mux.HandleFunc("/api/settings/password", s.handleUpdatePassword)
+	s.mux.HandleFunc("/api/system/version", s.handleSystemVersion)
+	s.mux.HandleFunc("/api/system/update", s.handleSystemUpdate)
 
 	// Static web files
 	subFS, err := fs.Sub(webFS, "assets")
@@ -250,6 +256,7 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 		"version": s.version,
 		"config":  cfg,
 		"status":  status,
+		"traffic": traffic.GetCollector().GetStats(),
 	}
 	s.jsonResponse(w, true, "", data)
 }
@@ -584,4 +591,109 @@ func (s *Server) handleUpdatePassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.jsonResponse(w, true, "Credentials updated successfully", nil)
+}
+
+func (s *Server) handleSystemVersion(w http.ResponseWriter, r *http.Request) {
+	rel, err := system.FetchLatestRelease()
+	latestTag := s.version
+	releaseNotes := ""
+	if err == nil && rel != nil {
+		latestTag = rel.TagName
+		releaseNotes = rel.Body
+	}
+
+	cleanLatest := strings.TrimPrefix(latestTag, "v")
+	cleanCurrent := strings.TrimPrefix(s.version, "v")
+	hasUpdate := false
+	if cleanLatest != "" && compareVersions(cleanLatest, cleanCurrent) > 0 {
+		hasUpdate = true
+	}
+
+	s.jsonResponse(w, true, "", map[string]interface{}{
+		"current_version": s.version,
+		"latest_version":  latestTag,
+		"has_update":      hasUpdate,
+		"release_notes":   releaseNotes,
+	})
+}
+
+func compareVersions(v1, v2 string) int {
+	v1 = strings.TrimPrefix(v1, "v")
+	v2 = strings.TrimPrefix(v2, "v")
+	p1 := strings.Split(v1, ".")
+	p2 := strings.Split(v2, ".")
+	for i := 0; i < len(p1) && i < len(p2); i++ {
+		n1, _ := strconv.Atoi(p1[i])
+		n2, _ := strconv.Atoi(p2[i])
+		if n1 > n2 {
+			return 1
+		}
+		if n1 < n2 {
+			return -1
+		}
+	}
+	if len(p1) > len(p2) {
+		return 1
+	}
+	if len(p1) < len(p2) {
+		return -1
+	}
+	return 0
+}
+
+func (s *Server) handleSystemUpdate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	newVersion, err := system.PerformUpdate()
+	if err != nil {
+		s.jsonResponse(w, false, "خطا در بروزرسانی پنل: "+err.Error(), nil)
+		return
+	}
+
+	s.jsonResponse(w, true, fmt.Sprintf("پنل با موفقیت به نسخه %s بروزرسانی شد و در حال راه‌اندازی مجدد است.", newVersion), map[string]interface{}{
+		"new_version": newVersion,
+	})
+}
+
+func (s *Server) startBackgroundPing() {
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+
+	for range ticker.C {
+		cfg := s.cfgMgr.Get()
+		targetIP := cfg.IranIP
+		if cfg.Role == "iran" {
+			targetIP = cfg.KharejIP
+		}
+
+		if targetIP == "" {
+			continue
+		}
+
+		ctrlPort := cfg.ControlPort
+		if ctrlPort <= 0 {
+			ctrlPort = 3080
+		}
+
+		ports := []int{ctrlPort, 7777}
+		reached := false
+		for _, p := range ports {
+			start := time.Now()
+			conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%d", targetIP, p), 2*time.Second)
+			if err == nil {
+				conn.Close()
+				latencyMs := time.Since(start).Milliseconds()
+				s.bhMgr.UpdatePing(latencyMs)
+				reached = true
+				break
+			}
+		}
+
+		if !reached {
+			s.bhMgr.UpdatePing(-1)
+		}
+	}
 }

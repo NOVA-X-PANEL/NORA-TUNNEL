@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -29,8 +30,9 @@ func main() {
 	setPass := flag.String("set-pass", "", "Set admin password and exit")
 	flag.Parse()
 
+	cleanVer := "v" + strings.TrimPrefix(Version, "v")
 	if *showVer {
-		fmt.Printf("NORA TUNNEL v%s (Built %s)\n", Version, BuildDate)
+		fmt.Printf("NORA TUNNEL %s (Built %s)\n", cleanVer, BuildDate)
 		return
 	}
 
@@ -54,7 +56,7 @@ func main() {
 		return
 	}
 
-	log.Printf("[NORA] Starting NORA TUNNEL v%s...", Version)
+	log.Printf("[NORA] Starting NORA TUNNEL %s...", cleanVer)
 
 	if *portFlag > 0 {
 		appCfg.WebPort = *portFlag
