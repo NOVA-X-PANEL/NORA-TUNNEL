@@ -70,6 +70,11 @@ install_deps() {
 }
 
 install_binary() {
+    echo -e "${YELLOW}[+] Stopping existing NORA TUNNEL instances...${NC}"
+    systemctl stop nora-tunnel 2>/dev/null || true
+    pkill -9 nora-tunnel 2>/dev/null || true
+    fuser -k 7777/tcp 2>/dev/null || true
+
     echo -e "${YELLOW}[+] Downloading and setting up NORA TUNNEL (${ARCH})...${NC}"
     mkdir -p "$CONFIG_DIR"
     mkdir -p "$CONFIG_DIR/backhaul"
@@ -123,9 +128,12 @@ Wants=network-online.target
 Type=simple
 User=root
 WorkingDirectory=/etc/nora-tunnel
+ExecStartPre=/bin/sh -c 'fuser -k 7777/tcp 2>/dev/null || true'
 ExecStart=$INSTALL_DIR/nora-tunnel -c $CONFIG_DIR/config.json
 Restart=always
 RestartSec=3s
+TimeoutStopSec=5s
+KillMode=mixed
 LimitNOFILE=1048576
 
 [Install]

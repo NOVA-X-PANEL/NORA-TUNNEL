@@ -5,8 +5,10 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os"
+	"os/exec"
 	"os/signal"
 	"strings"
 	"syscall"
@@ -18,7 +20,7 @@ import (
 )
 
 var (
-	Version   = "1.1.7"
+	Version   = "1.1.8"
 	BuildDate = ""
 )
 
@@ -106,7 +108,7 @@ func main() {
 		}
 	}
 
-	// Web Server
+	// Web Server with resilient listener and auto port cleanup
 	srv := web.NewServer(cfgMgr, bhMgr, Version)
 	addr := fmt.Sprintf("0.0.0.0:%d", appCfg.WebPort)
 
@@ -118,9 +120,14 @@ func main() {
 		IdleTimeout:  60 * time.Second,
 	}
 
+	listener, err := createResilientListener(appCfg.WebPort)
+	if err != nil {
+		log.Fatalf("[NORA-FATAL] HTTP server failed to bind port %d: %v", appCfg.WebPort, err)
+	}
+
 	go func() {
 		log.Printf("[NORA] Web Dashboard running on http://%s", addr)
-		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := httpServer.Serve(listener); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("[NORA-FATAL] HTTP server error: %v", err)
 		}
 	}()
@@ -136,4 +143,36 @@ func main() {
 
 	_ = httpServer.Shutdown(shutdownCtx)
 	log.Printf("[NORA] Web server stopped cleanly (tunnel services remain running in background).")
+}
+
+func createResilientListener(port int) (net.Listener, error) {
+	addr := fmt.Sprintf("0.0.0.0:%d", port)
+	lc := net.ListenConfig{
+		Control: func(network, address string, c syscall.RawConn) error {
+			return c.Control(func(fd uintptr) {
+				_ = syscall.SetsockoptInt(int(fd), syscall.SOL_SOCKET, syscall.SO_REUSEADDR, 1)
+				// SO_REUSEPORT (15 on Linux)
+				_ = syscall.SetsockoptInt(int(fd), syscall.SOL_SOCKET, 15, 1)
+			})
+		},
+	}
+
+	var listener net.Listener
+	var err error
+
+	for attempt := 1; attempt <= 5; attempt++ {
+		listener, err = lc.Listen(context.Background(), "tcp", addr)
+		if err == nil {
+			return listener, nil
+		}
+
+		log.Printf("[NORA-WARN] Web port %d is occupied or releasing (attempt %d/5): %v", port, attempt, err)
+		if os.Geteuid() == 0 {
+			// Proactively terminate any zombie/orphaned process on this port
+			_ = exec.Command("fuser", "-k", fmt.Sprintf("%d/tcp", port)).Run()
+		}
+		time.Sleep(800 * time.Millisecond)
+	}
+
+	return nil, fmt.Errorf("failed to bind web port %d after 5 retries: %w", port, err)
 }
