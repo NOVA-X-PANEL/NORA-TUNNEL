@@ -75,6 +75,7 @@ func (s *Server) registerRoutes() {
 	s.mux.HandleFunc("/api/settings/password", s.handleUpdatePassword)
 	s.mux.HandleFunc("/api/system/version", s.handleSystemVersion)
 	s.mux.HandleFunc("/api/system/update", s.handleSystemUpdate)
+	s.mux.HandleFunc("/api/system/diag", s.handleSystemDiag)
 
 	// Static web files
 	subFS, err := fs.Sub(webFS, "assets")
@@ -397,6 +398,7 @@ func (s *Server) handleConnectTunnel(w http.ResponseWriter, r *http.Request) {
 	// Start Backhaul on Iran asynchronously
 	go func() {
 		_ = s.bhMgr.Restart(cfg)
+		backhaul.EnsureFirewallRules(cfg)
 	}()
 
 	s.jsonResponse(w, true, "Tunnel connected successfully via hash", nil)
@@ -413,6 +415,7 @@ func (s *Server) handleRestartTunnel(w http.ResponseWriter, r *http.Request) {
 		s.jsonResponse(w, false, "Failed to restart: "+err.Error(), nil)
 		return
 	}
+	backhaul.EnsureFirewallRules(cfg)
 
 	s.jsonResponse(w, true, "Tunnel restarted successfully", nil)
 }
@@ -500,19 +503,8 @@ func (s *Server) handleAddPort(w http.ResponseWriter, r *http.Request) {
 	// Reload Backhaul with new port list
 	_ = s.bhMgr.UpdatePorts(cfg)
 
-	// Ensure port is allowed in iptables & ufw if running as root
-	if os.Geteuid() == 0 {
-		cleanPort := req.Port
-		if strings.Contains(cleanPort, "=") {
-			cleanPort = strings.Split(cleanPort, "=")[0]
-		}
-		cleanPort = strings.TrimSpace(cleanPort)
-		if cleanPort != "" {
-			_ = exec.Command("iptables", "-I", "INPUT", "-p", "tcp", "--dport", cleanPort, "-j", "ACCEPT").Run()
-			_ = exec.Command("iptables", "-I", "INPUT", "-p", "udp", "--dport", cleanPort, "-j", "ACCEPT").Run()
-			_ = exec.Command("ufw", "allow", cleanPort).Run()
-		}
-	}
+	// Ensure port is allowed in firewall & clean NAT conflicts
+	backhaul.EnsureFirewallRules(cfg)
 
 	s.jsonResponse(w, true, "Port added successfully", map[string]interface{}{
 		"ports": cfg.Ports,
@@ -734,4 +726,37 @@ func (s *Server) startBackgroundPing() {
 			s.bhMgr.UpdatePing(-1)
 		}
 	}
+}
+
+func (s *Server) handleSystemDiag(w http.ResponseWriter, r *http.Request) {
+	if !s.isAuthenticated(r) {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	tunCfg := s.cfgMgr.Get()
+	if r.URL.Query().Get("fix") == "1" {
+		backhaul.EnsureFirewallRules(tunCfg)
+	}
+
+	if r.URL.Query().Get("flush_nat") == "1" {
+		_ = exec.Command("iptables", "-t", "nat", "-F", "PREROUTING").Run()
+		backhaul.EnsureFirewallRules(tunCfg)
+	}
+
+	iptablesIn, _ := exec.Command("iptables", "-L", "INPUT", "-n", "-v", "--line-numbers").CombinedOutput()
+	iptablesNat, _ := exec.Command("iptables", "-t", "nat", "-L", "-n", "-v", "--line-numbers").CombinedOutput()
+	ssOut, _ := exec.Command("ss", "-tulpn").CombinedOutput()
+	ufwOut, _ := exec.Command("ufw", "status", "verbose").CombinedOutput()
+	bhStatus, _ := exec.Command("systemctl", "status", backhaul.SystemdServiceName, "--no-pager").CombinedOutput()
+	bhLogs, _ := exec.Command("journalctl", "-u", backhaul.SystemdServiceName, "-n", "30", "--no-pager").CombinedOutput()
+
+	s.jsonResponse(w, true, "Diagnostics collected", map[string]interface{}{
+		"iptables_input":  string(iptablesIn),
+		"iptables_nat":    string(iptablesNat),
+		"ss":              string(ssOut),
+		"ufw":             string(ufwOut),
+		"backhaul_status": string(bhStatus),
+		"backhaul_logs":   string(bhLogs),
+	})
 }

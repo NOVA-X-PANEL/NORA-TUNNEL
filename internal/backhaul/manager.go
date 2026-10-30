@@ -293,6 +293,8 @@ func (m *Manager) Start(cfg config.TunnelConfig) error {
 		return fmt.Errorf("backhaul binary missing and download failed: %w", err)
 	}
 
+	EnsureFirewallRules(cfg)
+
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -515,4 +517,74 @@ WantedBy=multi-user.target
 func hasSystemd() bool {
 	_, err := exec.LookPath("systemctl")
 	return err == nil
+}
+
+func EnsureFirewallRules(cfg config.TunnelConfig) {
+	if os.Geteuid() != 0 {
+		return
+	}
+
+	// 1. Ensure default policies are ACCEPT
+	_ = exec.Command("iptables", "-P", "INPUT", "ACCEPT").Run()
+	_ = exec.Command("iptables", "-P", "FORWARD", "ACCEPT").Run()
+	_ = exec.Command("iptables", "-P", "OUTPUT", "ACCEPT").Run()
+
+	// 2. Ensure control port is open
+	if cfg.ControlPort > 0 {
+		cpStr := fmt.Sprintf("%d", cfg.ControlPort)
+		_ = exec.Command("iptables", "-I", "INPUT", "1", "-p", "tcp", "--dport", cpStr, "-j", "ACCEPT").Run()
+		_ = exec.Command("iptables", "-I", "INPUT", "1", "-p", "udp", "--dport", cpStr, "-j", "ACCEPT").Run()
+		_ = exec.Command("ufw", "allow", cpStr).Run()
+	}
+
+	// 3. For each configured port, ensure open in INPUT and UFW, and remove any NAT PREROUTING hijacking
+	for _, p := range cfg.Ports {
+		cleanPort := strings.TrimSpace(p)
+		if strings.Contains(cleanPort, "=") {
+			cleanPort = strings.Split(cleanPort, "=")[0]
+		}
+		cleanPort = strings.TrimSpace(cleanPort)
+		if cleanPort == "" {
+			continue
+		}
+
+		// Ensure allowed at very top of INPUT chain
+		_ = exec.Command("iptables", "-I", "INPUT", "1", "-p", "tcp", "--dport", cleanPort, "-j", "ACCEPT").Run()
+		_ = exec.Command("iptables", "-I", "INPUT", "1", "-p", "udp", "--dport", cleanPort, "-j", "ACCEPT").Run()
+		_ = exec.Command("ufw", "allow", cleanPort).Run()
+
+		// Remove any stale NAT PREROUTING rules (like DNAT/REDIRECT) hijacking this port
+		if out, err := exec.Command("iptables", "-t", "nat", "-S", "PREROUTING").Output(); err == nil {
+			for _, line := range strings.Split(string(out), "\n") {
+				line = strings.TrimSpace(line)
+				if (strings.Contains(line, fmt.Sprintf("--dport %s ", cleanPort)) || strings.HasSuffix(line, fmt.Sprintf("--dport %s", cleanPort))) &&
+					(strings.Contains(line, "-j DNAT") || strings.Contains(line, "-j REDIRECT")) {
+					delRule := strings.Replace(line, "-A ", "-D ", 1)
+					args := strings.Fields(delRule)
+					_ = exec.Command("iptables", append([]string{"-t", "nat"}, args...)...).Run()
+				}
+			}
+		}
+
+		// Remove any explicit DROP/REJECT rules in INPUT targeting this port
+		if inOut, err := exec.Command("iptables", "-S", "INPUT").Output(); err == nil {
+			for _, line := range strings.Split(string(inOut), "\n") {
+				line = strings.TrimSpace(line)
+				if (strings.Contains(line, fmt.Sprintf("--dport %s ", cleanPort)) || strings.HasSuffix(line, fmt.Sprintf("--dport %s", cleanPort))) &&
+					(strings.Contains(line, "-j DROP") || strings.Contains(line, "-j REJECT")) {
+					delRule := strings.Replace(line, "-A ", "-D ", 1)
+					args := strings.Fields(delRule)
+					_ = exec.Command("iptables", args...).Run()
+				}
+			}
+		}
+
+		// Direct cleanup loop
+		_ = exec.Command("bash", "-c", fmt.Sprintf("while iptables -t nat -D PREROUTING -p tcp --dport %s -j DNAT 2>/dev/null; do :; done", cleanPort)).Run()
+		_ = exec.Command("bash", "-c", fmt.Sprintf("while iptables -t nat -D PREROUTING -p udp --dport %s -j DNAT 2>/dev/null; do :; done", cleanPort)).Run()
+		_ = exec.Command("bash", "-c", fmt.Sprintf("while iptables -t nat -D PREROUTING -p tcp --dport %s -j REDIRECT 2>/dev/null; do :; done", cleanPort)).Run()
+		_ = exec.Command("bash", "-c", fmt.Sprintf("while iptables -t nat -D PREROUTING -p udp --dport %s -j REDIRECT 2>/dev/null; do :; done", cleanPort)).Run()
+		_ = exec.Command("bash", "-c", fmt.Sprintf("while iptables -D INPUT -p tcp --dport %s -j DROP 2>/dev/null; do :; done", cleanPort)).Run()
+		_ = exec.Command("bash", "-c", fmt.Sprintf("while iptables -D INPUT -p udp --dport %s -j DROP 2>/dev/null; do :; done", cleanPort)).Run()
+	}
 }
