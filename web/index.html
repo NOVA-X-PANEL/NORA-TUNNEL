@@ -822,6 +822,78 @@
       50% { width: 70%; margin-right: 15%; }
       100% { width: 15%; margin-right: 85%; }
     }
+
+    /* Language Switcher & LTR/RTL Styles */
+    .lang-switch-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(0, 245, 212, 0.3);
+      color: var(--neon-cyan);
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .lang-switch-btn:hover {
+      background: rgba(0, 245, 212, 0.15);
+      border-color: var(--neon-cyan);
+      box-shadow: 0 0 14px rgba(0, 245, 212, 0.35);
+      transform: translateY(-1px);
+    }
+    .lang-pill {
+      flex: 1;
+      padding: 8px 12px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      color: var(--text-muted);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: center;
+    }
+    .lang-pill:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text-main);
+    }
+    .lang-pill.active {
+      background: rgba(0, 245, 212, 0.15);
+      border-color: var(--neon-cyan);
+      color: var(--neon-cyan);
+      box-shadow: 0 0 10px rgba(0, 245, 212, 0.25);
+    }
+    html[dir="ltr"] body {
+      direction: ltr;
+      text-align: left;
+    }
+    html[dir="ltr"] .drawer-menu {
+      direction: ltr;
+    }
+    html[dir="ltr"] #toast-container {
+      left: auto;
+      right: 24px;
+    }
+
+    /* Custom Neon/Dark Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.2);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(0, 245, 212, 0.25);
+      border-radius: 999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--neon-cyan);
+    }
   </style>
 </head>
 <body>
@@ -829,24 +901,29 @@
   <!-- Login Screen Overlay -->
   <div id="login-overlay" style="display: none; position: fixed; inset: 0; background: rgba(5, 6, 10, 0.92); backdrop-filter: blur(20px); z-index: 10000; align-items: center; justify-content: center; padding: 20px;">
     <div style="max-width: 400px; width: 100%; background: var(--bg-card); border: 1px solid rgba(0, 245, 212, 0.3); border-radius: 20px; padding: 32px; box-shadow: 0 0 50px rgba(0, 245, 212, 0.2); animation: fadeIn 0.3s ease;">
+      <div style="display: flex; justify-content: flex-end; margin-bottom: 12px;">
+        <button type="button" class="lang-switch-btn" onclick="toggleLanguage()" style="font-size: 11px; padding: 4px 10px;">
+          <span>🌐</span> <span id="login-lang-label">English</span>
+        </button>
+      </div>
       <div style="text-align: center; margin-bottom: 24px;">
         <div class="brand-icon" style="width: 52px; height: 52px; font-size: 24px; margin: 0 auto 12px;">⚡</div>
         <h2 style="font-size: 20px; font-weight: 800; background: linear-gradient(90deg, #fff, var(--neon-cyan)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">NORA TUNNEL</h2>
-        <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">ورود به پنل مدیریت تانل بک‌هال</div>
+        <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;" data-i18n="login_sub">ورود به پنل مدیریت تانل بک‌هال</div>
       </div>
 
       <div class="form-group">
-        <label class="form-label">نام کاربری:</label>
+        <label class="form-label" data-i18n="login_user_label">نام کاربری:</label>
         <input type="text" class="form-input" id="login-user" placeholder="admin" autofocus>
       </div>
 
       <div class="form-group" style="margin-bottom: 24px;">
-        <label class="form-label">رمز عبور:</label>
+        <label class="form-label" data-i18n="login_pass_label">رمز عبور:</label>
         <input type="password" class="form-input" id="login-pass" placeholder="••••••••" onkeypress="if(event.key==='Enter') doLogin()">
       </div>
 
       <button class="btn btn-primary" style="width: 100%; height: 46px;" onclick="doLogin()">
-        <span>🔐 ورود به داشبورد</span>
+        <span data-i18n="login_btn">🔐 ورود به داشبورد</span>
       </button>
 
       <div id="login-error" style="color: var(--danger); font-size: 12px; text-align: center; margin-top: 14px; min-height: 18px;"></div>
@@ -863,60 +940,65 @@
         <div class="brand-icon" style="width: 34px; height: 34px; font-size: 16px;">⚡</div>
         <div>
           <div style="font-weight: 800; font-size: 15px; color: #fff;">NORA TUNNEL</div>
-          <div style="font-size: 11px; color: var(--text-muted);" id="drawer-version-tag">نسخه در حال بارگذاری...</div>
+          <div style="font-size: 11px; color: var(--text-muted);" id="drawer-version-tag" data-i18n="drawer_version_loading">نسخه در حال بارگذاری...</div>
         </div>
       </div>
-      <button class="drawer-close" onclick="closeDrawer()" title="بستن منو">✕</button>
+      <button class="drawer-close" onclick="closeDrawer()" title="بستن منو" data-i18n-title="drawer_close_title" onclick="closeDrawer()">✕</button>
     </div>
 
     <div class="drawer-content">
-      <div class="drawer-section-title">ناوبری و صفحات</div>
+      <div class="drawer-section-title" data-i18n="drawer_lang_title">زبان / Language</div>
+      <div style="display: flex; gap: 8px; padding: 4px 10px 14px;">
+        <button type="button" class="lang-pill" id="lang-pill-fa" onclick="setLanguage('fa')">🇮🇷 فارسی</button>
+        <button type="button" class="lang-pill" id="lang-pill-en" onclick="setLanguage('en')">🇬🇧 English</button>
+      </div>
+      <div class="drawer-section-title" data-i18n="drawer_nav_title">ناوبری و صفحات</div>
       <a class="drawer-item" onclick="drawerNav('setup')">
         <span class="drawer-item-icon">⚡</span>
-        <span>راه‌اندازی و اتصال هش</span>
+        <span data-i18n="drawer_nav_setup">راه‌اندازی و اتصال هش</span>
       </a>
       <a class="drawer-item" onclick="drawerNav('ports')">
         <span class="drawer-item-icon">🔌</span>
-        <span>مدیریت پورت‌ها (Port Forwarding)</span>
+        <span data-i18n="drawer_nav_ports">مدیریت پورت‌ها (Port Forwarding)</span>
       </a>
       <a class="drawer-item" onclick="drawerNav('logs')">
         <span class="drawer-item-icon">📜</span>
-        <span>لاگ زنده و عیب‌یابی</span>
+        <span data-i18n="drawer_nav_logs">لاگ زنده و عیب‌یابی</span>
       </a>
       <a class="drawer-item" onclick="drawerNav('settings')">
         <span class="drawer-item-icon">⚙️</span>
-        <span>تنظیمات و تغییر پسورد</span>
+        <span data-i18n="drawer_nav_settings">تنظیمات و تغییر پسورد</span>
       </a>
 
-      <div class="drawer-section-title">سیستم و ابزارها</div>
+      <div class="drawer-section-title" data-i18n="drawer_sys_title">سیستم و ابزارها</div>
       <a class="drawer-item highlight" onclick="openUpdateModal()">
         <span class="drawer-item-icon">🚀</span>
         <div style="flex: 1;">
-          <div style="font-weight: 700;">بروزرسانی پنل (System Update)</div>
-          <div style="font-size: 11px; color: var(--neon-cyan);">بروزرسانی آنلاین مستقیم از پنل</div>
+          <div style="font-weight: 700;" data-i18n="drawer_update">بروزرسانی پنل (System Update)</div>
+          <div style="font-size: 11px; color: var(--neon-cyan);" data-i18n="drawer_update_sub">بروزرسانی آنلاین مستقیم از پنل</div>
         </div>
-        <span class="badge-new" id="drawer-update-badge" style="display: none;">جدید</span>
+        <span class="badge-new" id="drawer-update-badge" style="display: none;" data-i18n="badge_new">جدید</span>
       </a>
       <a class="drawer-item" onclick="restartTunnelAction(); closeDrawer();">
         <span class="drawer-item-icon">🔄</span>
-        <span>ری‌استارت سرویس تانل</span>
+        <span data-i18n="drawer_restart">ری‌استارت سرویس تانل</span>
       </a>
       <a class="drawer-item" style="color: #ff5577;" onclick="removeTunnelAction(); closeDrawer();">
         <span class="drawer-item-icon">🗑️</span>
         <div style="flex: 1;">
-          <div style="font-weight: 700;">حذف کامل تانل (Remove Tunnel)</div>
-          <div style="font-size: 11px; color: #ff8899;">حذف کانفیگ فعلی برای ساخت تانل نو</div>
+          <div style="font-weight: 700;" data-i18n="drawer_remove">حذف کامل تانل (Remove Tunnel)</div>
+          <div style="font-size: 11px; color: #ff8899;" data-i18n="drawer_remove_sub">حذف کانفیگ فعلی برای ساخت تانل نو</div>
         </div>
       </a>
       <a class="drawer-item" onclick="testPingAction(); closeDrawer();">
         <span class="drawer-item-icon">📡</span>
-        <span>سنجش دستی پینگ سرورها</span>
+        <span data-i18n="drawer_ping">سنجش دستی پینگ سرورها</span>
       </a>
 
       <div style="margin-top: auto; padding-top: 24px;">
         <a class="drawer-item" style="color: var(--danger);" onclick="doLogout()">
           <span class="drawer-item-icon">🚪</span>
-          <span>خروج از پنل</span>
+          <span data-i18n="drawer_logout">خروج از پنل</span>
         </a>
       </div>
     </div>
@@ -927,24 +1009,24 @@
     <div class="modal-card">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
         <div style="font-size: 17px; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 8px;">
-          <span style="font-size: 20px;">🚀</span> بروزرسانی پنل NORA TUNNEL
+          <span style="font-size: 20px;">🚀</span> <span data-i18n="update_modal_title">بروزرسانی پنل NORA TUNNEL</span>
         </div>
         <button class="drawer-close" onclick="closeUpdateModal()">✕</button>
       </div>
 
       <div class="update-info-box">
         <div class="update-version-row">
-          <span>نسخه فعلی نصب‌شده:</span>
+          <span data-i18n="update_cur_ver">نسخه فعلی نصب‌شده:</span>
           <strong id="modal-current-version" style="color: var(--text-muted);">...</strong>
         </div>
         <div class="update-version-row">
-          <span>آخرین نسخه در گیت‌هاب:</span>
-          <strong id="modal-latest-version" style="color: var(--neon-cyan);">در حال بررسی...</strong>
+          <span data-i18n="update_lat_ver">آخرین نسخه در گیت‌هاب:</span>
+          <strong id="modal-latest-version" style="color: var(--neon-cyan);" data-i18n="checking_status">در حال بررسی...</strong>
         </div>
       </div>
 
       <div id="update-status-msg" style="margin: 15px 0; font-size: 13px; color: var(--text-muted); line-height: 1.6;">
-        با تایید شما، آخرین نسخه پنل مستقیماً از گیت‌هاب دانلود و بدون قطعی جایگزین می‌شود.
+        <span data-i18n="update_notice">با تایید شما، آخرین نسخه پنل مستقیماً از گیت‌هاب دانلود و بدون قطعی جایگزین می‌شود.</span>
       </div>
 
       <div id="update-progress-bar" style="display: none; margin: 15px 0;">
@@ -955,9 +1037,9 @@
       </div>
 
       <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
-        <button type="button" class="btn btn-secondary" onclick="closeUpdateModal()">انصراف</button>
+        <button type="button" class="btn btn-secondary" onclick="closeUpdateModal()" data-i18n="update_btn_cancel">انصراف</button>
         <button type="button" class="btn btn-primary" id="btn-start-update" onclick="startPanelUpdate()">
-          <span>⚡ شروع بروزرسانی آنلاین</span>
+          <span data-i18n="update_btn_start">⚡ شروع بروزرسانی آنلاین</span>
         </button>
       </div>
     </div>
@@ -971,22 +1053,26 @@
         <div class="brand-icon">⚡</div>
         <div>
           <div class="brand-title">NORA TUNNEL PRO</div>
-          <div class="brand-sub">اتوماسیون هوشمند تانل بک‌هال لایه ۴ (Backhaul)</div>
+          <div class="brand-sub" data-i18n="brand_sub">اتوماسیون هوشمند تانل بک‌هال لایه ۴ (Backhaul)</div>
         </div>
       </div>
 
       <div class="top-stats">
+        <button type="button" class="lang-switch-btn" onclick="toggleLanguage()" id="lang-switch-btn" title="تغییر زبان / Switch Language" data-i18n-title="lang_btn_title">
+          <span style="font-size: 13px;">🌐</span>
+          <span id="lang-btn-text">EN</span>
+        </button>
         <div class="status-badge" id="role-badge">
-          <span>نقش سرور:</span>
-          <strong id="server-role-text" style="color: var(--neon-cyan)">تشخیص نشده</strong>
+          <span data-i18n="server_role">نقش سرور:</span>
+          <strong id="server-role-text" style="color: var(--neon-cyan)" data-i18n="role_ready">آماده پیکربندی</strong>
         </div>
 
         <div class="status-badge">
           <span class="dot" id="status-dot"></span>
-          <span id="status-text">بررسی وضعیت...</span>
+          <span id="status-text" data-i18n="checking_status">بررسی وضعیت...</span>
         </div>
 
-        <button class="hamburger-btn" onclick="toggleDrawer()" title="منوی امکانات و بروزرسانی">
+        <button class="hamburger-btn" onclick="toggleDrawer()" title="منوی امکانات و بروزرسانی" data-i18n-title="drawer_btn_title">
           <span></span>
           <span></span>
           <span></span>
@@ -1000,84 +1086,82 @@
       <!-- 1. Ping between two servers -->
       <div class="metric-card">
         <div style="display: flex; justify-content: space-between; align-items: center;">
-          <div class="metric-label">📡 پینگ بین دو سرور</div>
-          <span id="ping-status-pill" style="font-size: 11px; padding: 2px 8px; border-radius: 999px; background: rgba(255,255,255,0.06); color: var(--text-muted);">زنده</span>
+          <div class="metric-label" data-i18n="metric_ping_title">📡 پینگ بین دو سرور</div>
+          <span id="ping-status-pill" style="font-size: 11px; padding: 2px 8px; border-radius: 999px; background: rgba(255,255,255,0.06); color: var(--text-muted);" data-i18n="metric_ping_live">زنده</span>
         </div>
         <div class="metric-val">
           <span id="metric-ping">--</span>
           <span class="metric-unit">ms</span>
         </div>
         <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" id="ping-peer-info">
-          سرور مقابل: در انتظار اتصال
+          <span data-i18n="ping_peer_waiting">سرور مقابل: در انتظار اتصال</span>
         </div>
       </div>
 
       <!-- 2. Total Server Traffic -->
       <div class="metric-card">
-        <div class="metric-label">📊 ترافیک کل سرور</div>
+        <div class="metric-label" data-i18n="metric_traffic_title">📊 ترافیک کل سرور</div>
         <div class="metric-val">
           <span id="metric-traffic-total" dir="ltr" style="display: inline-block;">0 B</span>
         </div>
         <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px; display: flex; gap: 12px; align-items: center;">
-          <span>📥 دانلود: <strong id="metric-traffic-rx" dir="ltr" style="color: var(--neon-cyan); display: inline-block;">0 B</strong></span>
-          <span>📤 آپلود: <strong id="metric-traffic-tx" dir="ltr" style="color: var(--neon-yellow); display: inline-block;">0 B</strong></span>
+          <span><span data-i18n="metric_download">📥 دانلود:</span> <strong id="metric-traffic-rx" dir="ltr" style="color: var(--neon-cyan); display: inline-block;">0 B</strong></span>
+          <span><span data-i18n="metric_upload">📤 آپلود:</span> <strong id="metric-traffic-tx" dir="ltr" style="color: var(--neon-yellow); display: inline-block;">0 B</strong></span>
         </div>
       </div>
 
       <!-- 3. Live Bandwidth Speed -->
       <div class="metric-card">
-        <div class="metric-label">⚡ سرعت لحظه‌ای شبکه (Live)</div>
+        <div class="metric-label" data-i18n="metric_speed_title">⚡ سرعت لحظه‌ای شبکه (Live)</div>
         <div class="metric-val" style="font-size: 18px; color: var(--neon-cyan);">
           <span id="metric-speed-rx" dir="ltr" style="display: inline-block;">0 B/s</span>
-          <span class="metric-unit" style="font-size: 11px; color: var(--text-muted);">⬇️ دانلود</span>
+          <span class="metric-unit" style="font-size: 11px; color: var(--text-muted);" data-i18n="metric_speed_rx_label">⬇️ دانلود</span>
         </div>
         <div style="font-size: 12px; color: var(--neon-yellow); margin-top: 4px;">
           <span id="metric-speed-tx" dir="ltr" style="display: inline-block;">0 B/s</span>
-          <span style="font-size: 11px; color: var(--text-muted);">⬆️ آپلود</span>
+          <span style="font-size: 11px; color: var(--text-muted);" data-i18n="metric_speed_tx_label">⬆️ آپلود</span>
         </div>
       </div>
 
       <!-- 4. Mode & Transport -->
       <div class="metric-card">
-        <div class="metric-label">🔄 معماری و حالت تانل</div>
+        <div class="metric-label" data-i18n="metric_mode_title">🔄 معماری و حالت تانل</div>
         <div class="metric-val" style="font-size: 17px;" id="metric-mode">
           Backhaul Reverse
         </div>
-        <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;" id="metric-transport-info">
-          پروتکل انتقال: tcpmux
-        </div>
+        <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;" id="metric-transport-info"><span data-i18n="metric_transport_prefix">پروتکل انتقال: </span>tcpmux</div>
       </div>
 
       <!-- 5. Forwarded Ports -->
       <div class="metric-card">
-        <div class="metric-label">🔌 پورت‌های فوروارد فعال</div>
+        <div class="metric-label" data-i18n="metric_ports_title">🔌 پورت‌های فوروارد فعال</div>
         <div class="metric-val">
           <span id="metric-ports-count">0</span>
-          <span class="metric-unit">پورت</span>
+          <span class="metric-unit" data-i18n="metric_unit_ports">پورت</span>
         </div>
         <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
-          مپ‌شده و آماده تبادل داده
+          <span data-i18n="metric_ports_suffix">مپ‌شده و آماده تبادل داده</span>
         </div>
       </div>
 
       <!-- 6. Uptime & Version -->
       <div class="metric-card">
-        <div class="metric-label">⏱️ مدت زمان آنلاین (Uptime)</div>
+        <div class="metric-label" data-i18n="metric_uptime_title">⏱️ مدت زمان آنلاین (Uptime)</div>
         <div class="metric-val" style="font-size: 18px;" id="metric-uptime">
           00:00:00
         </div>
         <div style="font-size: 11px; color: var(--neon-cyan); margin-top: 4px;" id="metric-version-text">
-          نسخه NORA: v1.0.8
+          <span data-i18n="metric_version_prefix">نسخه NORA: </span>v1.0.8
         </div>
       </div>
     </div>
 
     <!-- Navigation Tabs -->
     <div class="tabs-bar">
-      <button class="tab-btn active" onclick="switchTab('setup')">⚡ راه‌اندازی و اتصال</button>
-      <button class="tab-btn" onclick="switchTab('ports')">🔌 مدیریت پورت‌ها (Port Forwarding)</button>
-      <button class="tab-btn" onclick="switchTab('logs')">📜 لاگ زنده و عیب‌یابی</button>
-      <button class="tab-btn" onclick="switchTab('settings')">⚙️ تنظیمات</button>
+      <button class="tab-btn active" onclick="switchTab('setup')" data-i18n="tab_setup">⚡ راه‌اندازی و اتصال</button>
+      <button class="tab-btn" onclick="switchTab('ports')" data-i18n="tab_ports">🔌 مدیریت پورت‌ها (Port Forwarding)</button>
+      <button class="tab-btn" onclick="switchTab('logs')" data-i18n="tab_logs">📜 لاگ زنده و عیب‌یابی</button>
+      <button class="tab-btn" onclick="switchTab('settings')" data-i18n="tab_settings">⚙️ تنظیمات</button>
     </div>
 
     <!-- TAB 1: SETUP -->
@@ -1088,18 +1172,18 @@
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
           <div>
             <div style="font-weight: 800; font-size: 16px; color: #fff; display: flex; align-items: center; gap: 8px;">
-              <span style="color: var(--neon-cyan); font-size: 18px;">⚡</span> وضعیت تانل سرور: <span id="active-tunnel-role-badge" class="status-badge connected">سرور خارج (Kharej)</span>
+              <span style="color: var(--neon-cyan); font-size: 18px;">⚡</span> <span data-i18n="active_tunnel_title">وضعیت تانل سرور:</span> <span id="active-tunnel-role-badge" class="status-badge connected">سرور خارج (Kharej)</span>
             </div>
             <div style="font-size: 13px; color: var(--text-muted); margin-top: 5px; line-height: 1.5;">
-              تانل روی این سرور پیکربندی و فعال شده است. برای تغییر کلی سرورها، ریست تنظیمات یا اتصال به یک سرور دیگر، از دکمه حذف تانل استفاده کنید.
+              <span data-i18n="active_tunnel_desc">تانل روی این سرور پیکربندی و فعال شده است. برای تغییر کلی سرورها، ریست تنظیمات یا اتصال به یک سرور دیگر، از دکمه حذف تانل استفاده کنید.</span>
             </div>
           </div>
           <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
             <button class="btn btn-secondary" onclick="restartTunnelAction()" style="font-size: 13px; padding: 9px 16px;">
-              🔄 ری‌استارت تانل
+              <span data-i18n="btn_restart_tunnel">🔄 ری‌استارت تانل</span>
             </button>
             <button class="btn btn-danger" onclick="removeTunnelAction()" style="font-size: 13px; padding: 9px 16px; background: rgba(255, 0, 85, 0.25); border-color: var(--danger); color: #fff; font-weight: 700;">
-              🗑️ حذف کامل تانل (Remove Tunnel)
+              <span data-i18n="btn_remove_tunnel">🗑️ حذف کامل تانل (Remove Tunnel)</span>
             </button>
           </div>
         </div>
@@ -1107,111 +1191,111 @@
 
       <!-- KHOREJ SETUP CARD -->
       <div class="card" id="kharej-setup-card">
-        <div class="card-title">🚀 ایجاد تانل جدید (مخصوص سرور خارج)</div>
-        <div class="card-desc">
+        <div class="card-title" data-i18n="kharej_title">🚀 ایجاد تانل جدید (مخصوص سرور خارج)</div>
+        <div class="card-desc" data-i18n="kharej_desc">
           آی‌پی سرور ایران و حالت تانل را مشخص کنید. سپس دکمه تولید هش را بزنید و کد ایجاد شده را در پنل سرور ایران پیست کنید.
         </div>
 
         <!-- Mode Select -->
-        <label class="form-label">انتخاب حالت هسته بک‌هال (Engine Mode):</label>
+        <label class="form-label" data-i18n="engine_mode_label">انتخاب حالت هسته بک‌هال (Engine Mode):</label>
         <div class="mode-cards">
           <div class="mode-card selected" id="mode-reverse" onclick="selectMode('reverse')">
             <div class="mode-card-header">
-              <span class="mode-name">🔄 بک‌هال ریورس (Reverse)</span>
-              <span class="mode-tag">پیشنهادی برای ایران</span>
+              <span class="mode-name" data-i18n="mode_reverse_name">🔄 بک‌هال ریورس (Reverse)</span>
+              <span class="mode-tag" data-i18n="mode_reverse_tag">پیشنهادی برای ایران</span>
             </div>
-            <div class="mode-desc">
+            <div class="mode-desc" data-i18n="mode_reverse_desc">
               سرور خارج به سمت سرور ایران متصل می‌شود. پورت‌ها روی سرور ایران باز می‌شوند. بهترین حالت برای عبور از فیلترینگ شدید مخابرات.
             </div>
           </div>
 
           <div class="mode-card" id="mode-direct" onclick="selectMode('direct')">
             <div class="mode-card-header">
-              <span class="mode-name">➡️ بک‌هال دایرکت (Direct)</span>
-              <span class="mode-tag">ارتباط مستقیم</span>
+              <span class="mode-name" data-i18n="mode_direct_name">➡️ بک‌هال دایرکت (Direct)</span>
+              <span class="mode-tag" data-i18n="mode_direct_tag">ارتباط مستقیم</span>
             </div>
             <div class="mode-desc">
-              سرور ایران کلاینت است و به سرور خارج متصل می‌شود. مناسب برای سرورهایی که پورت ورودی ایران بسته است.
+              <span data-i18n="mode_direct_desc">سرور ایران کلاینت است و به سرور خارج متصل می‌شود. مناسب برای سرورهایی که پورت ورودی ایران بسته است.</span>
             </div>
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label">آدرس IP سرور ایران (Iran Server Public IP):</label>
-            <input type="text" class="form-input" id="iran-ip-input" placeholder="مثال: 85.9.106.159">
+            <label class="form-label" data-i18n="iran_ip_label">آدرس IP سرور ایران (Iran Server Public IP):</label>
+            <input type="text" class="form-input" id="iran-ip-input" placeholder="مثال: 85.9.106.159" data-i18n-ph="iran_ip_ph">
           </div>
 
           <div class="form-group">
-            <label class="form-label">پروتکل ترنسپورت (Transport):</label>
+            <label class="form-label" data-i18n="transport_label">پروتکل ترنسپورت (Transport):</label>
             <select class="form-select" id="transport-select">
-              <option value="tcpmux" selected>tcpmux (مالتی‌پلکس فوق‌سریع - پیش‌فرض)</option>
-              <option value="ws">WebSocket (WS - سبک)</option>
-              <option value="tcp">TCP ساده (سازگارترین)</option>
+              <option value="tcpmux" selected data-i18n="opt_tcpmux">tcpmux (مالتی‌پلکس فوق‌سریع - پیش‌فرض)</option>
+              <option value="ws" data-i18n="opt_ws">WebSocket (WS - سبک)</option>
+              <option value="tcp" data-i18n="opt_tcp">TCP ساده (سازگارترین)</option>
               <option value="wsmux">WS Mux</option>
             </select>
           </div>
 
           <div class="form-group">
-            <label class="form-label">پورت کنترل بک‌هال (Control Port):</label>
+            <label class="form-label" data-i18n="ctrl_port_label">پورت کنترل بک‌هال (Control Port):</label>
             <input type="number" class="form-input" id="ctrl-port-input" value="3080">
           </div>
         </div>
 
         <div class="form-group">
-          <label class="form-label">پورت‌های مورد نظر جهت فوروارد (جداشده با کاما):</label>
-          <input type="text" class="form-input" id="initial-ports-input" placeholder="مثال: 443, 2053, 8080 یا رِنج 10000-10050">
-          <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">پورت‌های مورد نیاز پنل یا اینباند خود را وارد کنید (بدون پورت پیش‌فرض).</div>
+          <label class="form-label" data-i18n="ports_label">پورت‌های مورد نظر جهت فوروارد (جداشده با کاما):</label>
+          <input type="text" class="form-input" id="initial-ports-input" placeholder="مثال: 443, 2053, 8080 یا رِنج 10000-10050" data-i18n-ph="ports_ph">
+          <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;" data-i18n="ports_hint">پورت‌های مورد نیاز پنل یا اینباند خود را وارد کنید (بدون پورت پیش‌فرض).</div>
         </div>
 
         <button class="btn btn-primary" onclick="generateHashAction()">
-          <span>⚡ تولید هش اختصاصی تانل (Generate Connection Hash)</span>
+          <span data-i18n="btn_generate_hash">⚡ تولید هش اختصاصی تانل (Generate Connection Hash)</span>
         </button>
 
         <!-- Generated Hash Display -->
         <div class="hash-display-box" id="hash-box" style="display: none; flex-direction: column; gap: 10px;">
           <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-            <strong style="color: #fff; font-size: 14px;">🔑 کد هش اختصاصی تانل (برای سرور ایران):</strong>
+            <strong style="color: #fff; font-size: 14px;" data-i18n="hash_box_title">🔑 کد هش اختصاصی تانل (برای سرور ایران):</strong>
             <div style="display: flex; gap: 8px;">
-              <button type="button" class="btn btn-primary" style="padding: 6px 14px; font-size: 12px;" onclick="copyHash()">
+              <button type="button" class="btn btn-primary" style="padding: 6px 14px; font-size: 12px;" onclick="copyHash()" data-i18n="btn_copy_hash">
                 📋 کپی هش در حافظه
               </button>
-              <button type="button" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;" onclick="selectHashText()">
+              <button type="button" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;" onclick="selectHashText()" data-i18n="btn_select_text">
                 🔍 انتخاب متن
               </button>
             </div>
           </div>
-          <textarea class="hash-text" id="generated-hash-text" readonly onclick="selectHashText()" rows="3" style="width: 100%; border: 1px solid var(--border-color); background: rgba(0,0,0,0.5); color: var(--neon-cyan); border-radius: 8px; padding: 10px; font-family: monospace; font-size: 12px; resize: none; direction: ltr; text-align: left;" placeholder="کد هش در اینجا نمایش داده خواهد شد..."></textarea>
+          <textarea class="hash-text" id="generated-hash-text" readonly onclick="selectHashText()" rows="3" style="width: 100%; border: 1px solid var(--border-color); background: rgba(0,0,0,0.5); color: var(--neon-cyan); border-radius: 8px; padding: 10px; font-family: monospace; font-size: 12px; resize: none; direction: ltr; text-align: left;" placeholder="کد هش در اینجا نمایش داده خواهد شد..." data-i18n-ph="hash_ph"></textarea>
           <div style="font-size: 12px; color: var(--text-muted);">
-            💡 با زدن دکمه کپی یا یک‌بار کلیک روی کادر بالا، متن به صورت خودکار انتخاب می‌شود. سپس آن را در پنل سرور ایران پیست کنید.
+            <span data-i18n="hash_hint">💡 با زدن دکمه کپی یا یک‌بار کلیک روی کادر بالا، متن به صورت خودکار انتخاب می‌شود. سپس آن را در پنل سرور ایران پیست کنید.</span>
           </div>
         </div>
       </div>
 
       <!-- IRAN SETUP CARD -->
       <div class="card" id="iran-setup-card">
-        <div class="card-title">📥 اتصال سریع با هش (مخصوص سرور ایران)</div>
+        <div class="card-title" data-i18n="iran_title">📥 اتصال سریع با هش (مخصوص سرور ایران)</div>
         <div class="card-desc">
-          کد هش تانلی که در سرور خارج تولید کرده‌اید را در کادر زیر وارد کنید و دکمه برقراری تانل را بزنید.
+          <span data-i18n="iran_desc">کد هش تانلی که در سرور خارج تولید کرده‌اید را در کادر زیر وارد کنید و دکمه برقراری تانل را بزنید.</span>
         </div>
 
         <div class="form-group">
-          <label class="form-label">کد هش تانل نورا (NORA://...):</label>
+          <label class="form-label" data-i18n="paste_hash_label">کد هش تانل نورا (NORA://...):</label>
           <textarea class="form-input" id="paste-hash-input" rows="3" placeholder="NORA://eyJtb2RlIjoicmV2ZXJzZS..."></textarea>
         </div>
 
         <button class="btn btn-primary" onclick="connectWithHashAction()">
-          <span>🔗 اعمال و برقراری آنی تانل (Connect Tunnel)</span>
+          <span data-i18n="btn_connect_tunnel">🔗 اعمال و برقراری آنی تانل (Connect Tunnel)</span>
         </button>
       </div>
 
       <!-- TUNNEL ACTIONS -->
       <div class="card">
-        <div class="card-title">🎮 کنترل و عملیات تانل</div>
+        <div class="card-title" data-i18n="ops_title">🎮 کنترل و عملیات تانل</div>
         <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-          <button class="btn btn-secondary" onclick="restartTunnelAction()">🔄 ری‌استارت تانل (Restart)</button>
-          <button class="btn btn-danger" onclick="stopTunnelAction()">⏹️ توقف سرویس تانل (Stop)</button>
-          <button class="btn btn-secondary" onclick="testPingAction()">📶 تست تاخیر و پینگ (Test Ping)</button>
+          <button class="btn btn-secondary" onclick="restartTunnelAction()" data-i18n="btn_restart_tunnel">🔄 ری‌استارت تانل (Restart)</button>
+          <button class="btn btn-danger" onclick="stopTunnelAction()" data-i18n="btn_stop_tunnel">⏹️ توقف سرویس تانل (Stop)</button>
+          <button class="btn btn-secondary" onclick="testPingAction()" data-i18n="btn_test_ping">📶 تست تاخیر و پینگ (Test Ping)</button>
         </div>
       </div>
 
@@ -1220,39 +1304,39 @@
     <!-- TAB 2: PORT FORWARDING -->
     <div id="tab-ports" class="tab-content">
       <div class="card">
-        <div class="card-title">🔌 افزودن پورت فورواردینگ جدید</div>
-        <div class="card-desc">
+        <div class="card-title" data-i18n="add_port_title">🔌 افزودن پورت فورواردینگ جدید</div>
+        <div class="card-desc" data-i18n="add_port_desc">
           شما می‌توانید پورت‌ها را مستقیماً از همینجا مدیریت کنید. وقتی پورتی اضافه می‌کنید، ترافیک ورودی به این پورت در سرور ایران، مستقیم به سرور خارج منتقل می‌شود.
         </div>
 
         <div class="form-row" style="align-items: flex-end;">
           <div class="form-group" style="flex: 2; margin-bottom: 0;">
-            <label class="form-label">شماره پورت یا رِنج پورت‌ها:</label>
-            <input type="text" class="form-input" id="new-port-input" placeholder="مثال: 443 یا 8443=443 یا 10000-10050">
+            <label class="form-label" data-i18n="port_input_label">شماره پورت یا رِنج پورت‌ها:</label>
+            <input type="text" class="form-input" id="new-port-input" placeholder="مثال: 443 یا 8443=443 یا 10000-10050" data-i18n-ph="port_input_ph">
           </div>
           <button class="btn btn-primary" onclick="addPortAction()" style="height: 44px;">
-            <span>➕ افزودن پورت</span>
+            <span data-i18n="btn_add_port">➕ افزودن پورت</span>
           </button>
         </div>
       </div>
 
       <!-- Ports List Table -->
       <div class="card">
-        <div class="card-title">📋 پورت‌های فعال تانل</div>
+        <div class="card-title" data-i18n="ports_table_title">📋 پورت‌های فعال تانل</div>
         <div class="table-responsive">
           <table>
             <thead>
               <tr>
-                <th>پورت ایران (Local Port)</th>
-                <th>پورت مقصد سرور خارج (Remote)</th>
-                <th>نوع فوروارد</th>
-                <th>وضعیت</th>
-                <th>عملیات</th>
+                <th data-i18n="th_iran_port">پورت ایران (Local Port)</th>
+                <th data-i18n="th_kharej_port">پورت مقصد سرور خارج (Remote)</th>
+                <th data-i18n="th_forward_type">نوع فوروارد</th>
+                <th data-i18n="th_status">وضعیت</th>
+                <th data-i18n="th_actions">عملیات</th>
               </tr>
             </thead>
             <tbody id="ports-table-body">
               <tr>
-                <td colspan="5" style="text-align: center; color: var(--text-muted);">در حال دریافت لیست پورت‌ها...</td>
+                <td colspan="5" style="text-align: center; color: var(--text-muted);"><span data-i18n="ports_loading">در حال دریافت لیست پورت‌ها...</span></td>
               </tr>
             </tbody>
           </table>
@@ -1264,38 +1348,38 @@
     <div id="tab-logs" class="tab-content">
       <div class="card">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-          <div class="card-title" style="margin-bottom: 0;">📜 لاگ زنده هسته بک‌هال (Live Core Logs)</div>
-          <button class="btn btn-secondary" style="padding: 6px 14px; font-size: 12px;" onclick="fetchLogs()">🔄 رفرش لاگ</button>
+          <div class="card-title" style="margin-bottom: 0;" data-i18n="logs_title">📜 لاگ زنده هسته بک‌هال (Live Core Logs)</div>
+          <button class="btn btn-secondary" style="padding: 6px 14px; font-size: 12px;" onclick="fetchLogs()" data-i18n="btn_refresh_logs">🔄 رفرش لاگ</button>
         </div>
-        <div class="log-box" id="logs-container">در حال بارگذاری لاگ‌ها...</div>
+        <div class="log-box" id="logs-container"><span data-i18n="logs_loading">در حال بارگذاری لاگ‌ها...</span></div>
       </div>
     </div>
 
     <!-- TAB 4: SETTINGS -->
     <div id="tab-settings" class="tab-content">
       <div class="card">
-        <div class="card-title">🔐 امنیت و اطلاعات ورود به پنل</div>
-        <div class="card-desc">تغییر نام کاربری و رمز عبور وب پنل NORA TUNNEL:</div>
+        <div class="card-title" data-i18n="settings_title">🔐 امنیت و اطلاعات ورود به پنل</div>
+        <div class="card-desc" data-i18n="settings_desc">تغییر نام کاربری و رمز عبور وب پنل NORA TUNNEL:</div>
 
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label">نام کاربری جدید:</label>
+            <label class="form-label" data-i18n="user_label">نام کاربری جدید:</label>
             <input type="text" class="form-input" id="new-username-input" placeholder="admin">
           </div>
           <div class="form-group">
-            <label class="form-label">رمز عبور جدید:</label>
+            <label class="form-label" data-i18n="pass_label">رمز عبور جدید:</label>
             <input type="password" class="form-input" id="new-password-input" placeholder="••••••••">
           </div>
         </div>
 
         <button class="btn btn-primary" onclick="updatePasswordAction()">
-          <span>💾 ذخیره تنظیمات امنیتی</span>
+          <span data-i18n="btn_save_creds">💾 ذخیره تنظیمات امنیتی</span>
         </button>
       </div>
 
       <div class="card">
-        <div class="card-title">ℹ️ درباره NORA TUNNEL</div>
-        <div style="font-size: 13px; color: var(--text-muted); line-height: 1.8;">
+        <div class="card-title" data-i18n="about_title">ℹ️ درباره NORA TUNNEL</div>
+        <div style="font-size: 13px; color: var(--text-muted); line-height: 1.8;" data-i18n="about_desc">
           این پنل به صورت اختصاصی برای مدیریت اتوماتیک و مدرن تانل‌های لایه ۴ مبتنی بر هسته پرسرعت <strong>Backhaul v0.7.2</strong> طراحی شده است.
           <br>
           مجهز به معماری دوگانه <strong>بک‌هال ریورس (Reverse)</strong> و <strong>بک‌هال دایرکت (Direct)</strong> با قابلیت استقرار مستقل و اتصال هش‌محور دوطرفه.
@@ -1308,6 +1392,458 @@
   <div id="toast-container"></div>
 
   <script>
+    const i18n = {
+      fa: {
+        toast_ports_invalid: "لطفاً حداقل یک پورت معتبر وارد کنید.",
+        toast_enter_hash: "لطفاً هش اتصال NORA را وارد کنید.",
+        toast_applying_hash: "در حال اعمال تنظیمات و اتصال به تانل...",
+        toast_session_expired: "نشست منقضی شده، لطفاً مجدداً وارد شوید.",
+        toast_iran_connected: "تانل در سرور ایران با موفقیت فعال و متصل شد! 🚀",
+        toast_all_ports_added: "تمام پورت‌های استاندارد افزوده شدند.",
+        toast_fill_creds: "حداقل نام کاربری یا رمز عبور جدید را وارد کنید.",
+        toast_creds_updated: "اطلاعات امنیتی با موفقیت بروزرسانی شد.",
+        toast_panel_updated: "پنل با موفقیت بروزرسانی شد.",
+
+        metric_speed_rx_label: "⬇️ دانلود",
+        metric_speed_tx_label: "⬆️ آپلود",
+        metric_unit_ports: "پورت",
+        opt_tcpmux: "tcpmux (مالتی‌پلکس فوق‌سریع - پیش‌فرض)",
+        opt_ws: "WebSocket (WS - سبک)",
+        opt_tcp: "TCP ساده (سازگارترین)",
+        logs_loading: "در حال بارگذاری لاگ‌ها...",
+        ports_loading: "در حال دریافت لیست پورت‌ها...",
+        drawer_version_loading: "نسخه در حال بارگذاری...",
+        drawer_active_version: "نسخه فعال {ver}",
+        badge_new: "جدید",
+        drawer_close_title: "بستن منو",
+        drawer_btn_title: "منوی امکانات و بروزرسانی",
+        lang_btn_title: "تغییر زبان / Switch Language",
+        hash_ph: "کد هش در اینجا نمایش داده خواهد شد...",
+
+        brand_sub: "اتوماسیون هوشمند تانل بک‌هال لایه ۴ (Backhaul)",
+        server_role: "نقش سرور:",
+        role_kharej: "🌍 سرور خارج (Foreign)",
+        role_iran: "🇮🇷 سرور ایران (Iran)",
+        role_ready: "آماده پیکربندی",
+        checking_status: "بررسی وضعیت...",
+        status_online: "متصل و پایدار",
+        status_offline: "متوقف / قطع",
+
+        // Metrics
+        metric_ping_title: "📡 پینگ بین دو سرور",
+        metric_ping_live: "زنده",
+        metric_ping_none: "🔴 عدم برقراری پینگ",
+        metric_ping_good: "🟢 عالی و پایدار",
+        metric_ping_fair: "🟡 تاخیر مناسب",
+        metric_ping_high: "🔴 تاخیر بالا",
+        ping_peer_waiting: "سرور مقابل: در انتظار پیکربندی هش",
+        ping_peer_dest: "مقصد: {dest} ({host})",
+        target_iran: "سرور ایران",
+        target_kharej: "سرور خارج",
+        metric_traffic_title: "📊 ترافیک کل سرور",
+        metric_download: "📥 دانلود:",
+        metric_upload: "📤 آپلود:",
+        metric_speed_title: "⚡ سرعت لحظه‌ای شبکه (Live)",
+        metric_mode_title: "🔄 معماری و حالت تانل",
+        metric_transport_prefix: "پروتکل انتقال: ",
+        metric_ports_title: "🔌 پورت‌های فوروارد فعال",
+        metric_ports_suffix: "می‌باشند و آماده تبادل داده",
+        metric_uptime_title: "⏱️ مدت زمان آنلاین (Uptime)",
+        metric_version_prefix: "نگارش NORA: ",
+
+        // Tabs
+        tab_setup: "⚡ راه‌اندازی و اتصال",
+        tab_ports: "🔌 مدیریت پورت‌ها (Port Forwarding)",
+        tab_logs: "📜 لاگ زنده و عیب‌یابی",
+        tab_settings: "⚙️ تنظیمات",
+
+        // Active Tunnel Card
+        active_tunnel_title: "⚡ وضعیت تانل سرور:",
+        active_tunnel_desc: "تانل روی این سرور پیکربندی و فعال شده است. برای تغییر کلی سرورها، ریست تنظیمات یا اتصال به یک سرور دیگر، از دکمه حذف تانل استفاده کنید.",
+        btn_restart_tunnel: "🔄 ری‌استارت تانل",
+        btn_remove_tunnel: "🗑️ حذف کامل تانل (Remove Tunnel)",
+        status_running_suffix: " - در حال کار",
+        status_stopped_suffix: " - متوقف",
+
+        // Kharej Setup
+        kharej_title: "🚀 ایجاد تانل جدید (مخصوص سرور خارج)",
+        kharej_desc: "آی‌پی سرور ایران و حالت تانل را مشخص کنید. سپس دکمه تولید هش را بزنید و کد ایجاد شده را در پنل سرور ایران پیست کنید.",
+        engine_mode_label: "انتخاب حالت هسته بک‌هال (Engine Mode):",
+        mode_reverse_name: "🔄 بک‌هال ریورس (Reverse)",
+        mode_reverse_tag: "پیشنهادی برای ایران",
+        mode_reverse_desc: "سرور خارج به سمت سرور ایران متصل می‌شود. پورت‌ها روی سرور ایران باز می‌شوند. بهترین حالت برای عبور از فیلترینگ شدید مخابرات.",
+        mode_direct_name: "➡️ بک‌هال دایرکت (Direct)",
+        mode_direct_tag: "ارتباط مستقیم",
+        mode_direct_desc: "سرور ایران کلاینت است و به سرور خارج متصل می‌شود. مناسب برای سرورهایی که پورت ورودی ایران بسته است.",
+        iran_ip_label: "آدرس IP سرور ایران (Iran Server Public IP):",
+        iran_ip_ph: "مثال: 85.9.106.159",
+        transport_label: "پروتکل ترنسپورت (Transport):",
+        ctrl_port_label: "پورت کنترل بک‌هال (Control Port):",
+        ports_label: "پورت‌های مورد نظر جهت فوروارد (جداشده با کاما):",
+        ports_ph: "مثال: 443, 2053, 8080 یا رِنج 10000-10050",
+        ports_hint: "پورت‌های مورد نیاز پنل یا اینباند خود را وارد کنید (بدون پورت پیش‌فرض).",
+        btn_generate_hash: "⚡ تولید هش اختصاصی تانل (Generate Connection Hash)",
+        hash_box_title: "🔑 کد هش اختصاصی تانل (برای سرور ایران):",
+        btn_copy_hash: "📋 کپی هش در حافظه",
+        btn_select_text: "🔍 انتخاب متن",
+        hash_hint: "💡 با زدن دکمه کپی یا یک‌بار کلیک روی کادر بالا، متن به صورت خودکار انتخاب می‌شود. سپس آن را در پنل سرور ایران پیست کنید.",
+
+        // Iran Setup
+        iran_title: "📥 اتصال سریع با هش (مخصوص سرور ایران)",
+        iran_desc: "کد هش تانلی که در سرور خارج تولید کرده‌اید را در کادر زیر وارد کنید و دکمه برقراری تانل را بزنید.",
+        paste_hash_label: "کد هش تانل نورا (NORA://...):",
+        btn_connect_tunnel: "🔗 اعمال و برقراری آنی تانل (Connect Tunnel)",
+
+        // Operations
+        ops_title: "🎮 کنترل و عملیات تانل",
+        btn_stop_tunnel: "⏹️ توقف سرویس تانل (Stop)",
+        btn_test_ping: "📶 تست تاخیر و پینگ (Test Ping)",
+
+        // Ports Tab
+        add_port_title: "🔌 افزودن پورت فورواردینگ جدید",
+        add_port_desc: "شما می‌توانید پورت‌ها را مستقیماً از همینجا مدیریت کنید. وقتی پورتی اضافه می‌کنید، ترافیک ورودی به این پورت در سرور ایران، مستقیم به سرور خارج منتقل می‌شود.",
+        port_input_label: "شماره پورت یا رِنج پورت‌ها:",
+        port_input_ph: "مثال: 443 یا 8443=443 یا 10000-10050",
+        btn_add_port: "➕ افزودن پورت",
+        ports_table_title: "📋 پورت‌های فعال تانل",
+        th_iran_port: "پورت ایران (Local Port)",
+        th_kharej_port: "پورت مقصد سرور خارج (Remote)",
+        th_forward_type: "نوع فوروارد",
+        th_status: "وضعیت",
+        th_actions: "عملیات",
+        no_ports_msg: "هیچ پورتی اضافه نشده است.",
+        btn_delete: "${t('btn_delete')}",
+        type_range: "بازه پورت‌ها (Range)",
+        type_single: "تک پورت",
+        status_active_tunnel: "🟢 فعال در تانل",
+
+        // Logs Tab
+        logs_title: "📜 لاگ زنده هسته بک‌هال (Live Core Logs)",
+        logs_desc: "گزارش وقایع و خطاهای هسته Backhaul جهت عیب‌یابی سریع و مانیتورینگ عملکرد لایه ۴:",
+        btn_refresh_logs: "🔄 رفرش لاگ",
+        btn_clear_logs: "🧹 پاک‌سازی صفحه",
+
+        // Settings Tab
+        settings_title: "🔐 امنیت و اطلاعات ورود به پنل",
+        settings_desc: "تغییر نام کاربری و رمز عبور وب پنل NORA TUNNEL:",
+        user_label: "نام کاربری جدید:",
+        pass_label: "رمز عبور جدید:",
+        btn_save_creds: "💾 ذخیره تنظیمات امنیتی",
+        about_title: "ℹ️ درباره NORA TUNNEL",
+        about_desc: "این پنل به صورت اختصاصی برای مدیریت اتوماتیک و مدرن تانل‌های لایه ۴ مبتنی بر هسته پرسرعت <strong>Backhaul v0.7.2</strong> طراحی شده است.<br>مجهز به معماری دوگانه <strong>بک‌هال ریورس (Reverse)</strong> و <strong>بک‌هال دایرکت (Direct)</strong> با قابلیت استقرار مستقل و اتصال هش‌محور دوطرفه.",
+
+        // Drawer Menu
+        drawer_nav_title: "ناوبری و صفحات",
+        drawer_sys_title: "سیستم و ابزارها",
+        drawer_lang_title: "زبان / Language",
+        drawer_nav_setup: "راه‌اندازی و اتصال هش",
+        drawer_nav_ports: "مدیریت پورت‌ها (Port Forwarding)",
+        drawer_nav_logs: "لاگ زنده و عیب‌یابی",
+        drawer_nav_settings: "تنظیمات و تغییر پسورد",
+        drawer_update: "بروزرسانی پنل (System Update)",
+        drawer_update_sub: "بروزرسانی آنلاین مستقیم از پنل",
+        drawer_restart: "ری‌استارت سرویس تانل",
+        drawer_remove: "حذف کامل تانل (Remove Tunnel)",
+        drawer_remove_sub: "حذف کانفیگ فعلی برای ساخت تانل نو",
+        drawer_ping: "سنجش دستی پینگ سرورها",
+        drawer_logout: "خروج از پنل",
+
+        // Update Modal
+        update_modal_title: "بروزرسانی پنل NORA TUNNEL",
+        update_cur_ver: "نسخه فعلی نصب‌شده:",
+        update_lat_ver: "آخرین نسخه در گیت‌هاب:",
+        update_notice: "با تایید شما، آخرین نسخه پنل مستقیماً از گیت‌هاب دانلود و بدون قطعی جایگزین می‌شود.",
+        update_btn_cancel: "انصراف",
+        update_btn_start: "⚡ شروع بروزرسانی آنلاین",
+
+        // Login Overlay
+        login_title: "NORA TUNNEL",
+        login_sub: "ورود به پنل مدیریت تانل بک‌هال",
+        login_user_label: "نام کاربری:",
+        login_pass_label: "رمز عبور:",
+        login_btn: "🔐 ورود به داشبورد",
+
+        // Alerts / Toasts / Dialogs
+        alert_confirm_remove: "آیا از حذف کامل تانل و ریست تنظیمات اطمینان دارید؟\nبا این کار کانفیگ تانل پاک می‌شود و می‌توانید تانل جدید بسازید.",
+        toast_removing_tunnel: "در حال حذف تانل و پاک‌سازی کامل تنظیمات...",
+        toast_tunnel_removed: "تانل با موفقیت حذف شد.",
+        toast_enter_iran_ip: "لطفاً آدرس IP سرور ایران را وارد کنید.",
+        toast_enter_ports: "لطفاً پورت‌های مورد نظر برای تانل را وارد کنید (مثال: 443, 2053).",
+        toast_hash_generated: "هش اتصال با موفقیت تولید شد و سرور خارج آماده اتصال است.",
+        toast_hash_selected: "متن هش انتخاب شد (Ctrl+C بزنید)",
+        toast_hash_copied: "کد هش در کلیپ‌بورد کپی شد!",
+        toast_no_hash: "هنوز هشی تولید نشده است.",
+        toast_login_success: "ورود با موفقیت انجام شد.",
+        toast_fill_login: "لطفاً نام کاربری و رمز عبور را وارد کنید.",
+        toast_restarting: "در حال ری‌استارت سرویس تانل...",
+        toast_restart_success: "سرویس تانل با موفقیت ری‌استارت شد.",
+        toast_stopping: "در حال توقف سرویس...",
+        toast_stop_success: "سرویس تانل متوقف شد.",
+        toast_confirm_stop: "آیا از توقف سرویس تانل اطمینان دارید؟",
+        toast_testing_ping: "در حال سنجش پینگ و سلامت ارتباط...",
+        toast_ping_latency: "تاخیر ارتباط با سرور مقابل: {ms} میلی‌ثانیه",
+        toast_port_added: "پورت {port} با موفقیت به تانل اضافه شد.",
+        toast_confirm_delete_port: "آیا از حذف پورت {port} اطمینان دارید؟",
+        toast_port_deleted: "پورت {port} با موفقیت حذف شد."
+      },
+      en: {
+        toast_ports_invalid: "Please enter at least one valid port.",
+        toast_enter_hash: "Please paste the NORA connection hash.",
+        toast_applying_hash: "Applying config and connecting tunnel...",
+        toast_session_expired: "Session expired, please log in again.",
+        toast_iran_connected: "Tunnel connected and active on Iran server! 🚀",
+        toast_all_ports_added: "Standard ports added successfully.",
+        toast_fill_creds: "Please enter new username or password.",
+        toast_creds_updated: "Credentials updated successfully.",
+        toast_panel_updated: "Panel updated successfully.",
+
+        metric_speed_rx_label: "⬇️ Download",
+        metric_speed_tx_label: "⬆️ Upload",
+        metric_unit_ports: "Ports",
+        opt_tcpmux: "tcpmux (Ultra-fast Multiplex - Default)",
+        opt_ws: "WebSocket (WS - Lightweight)",
+        opt_tcp: "Plain TCP (Most Compatible)",
+        logs_loading: "Loading real-time logs...",
+        ports_loading: "Fetching active ports list...",
+        drawer_version_loading: "Loading version...",
+        drawer_active_version: "Active Version {ver}",
+        badge_new: "New",
+        drawer_close_title: "Close Menu",
+        drawer_btn_title: "Features & System Menu",
+        lang_btn_title: "Switch Language / تغییر زبان",
+        hash_ph: "Connection hash will be generated here...",
+
+        brand_sub: "Smart Layer-4 Backhaul Tunnel Automation",
+        server_role: "Server Role:",
+        role_kharej: "🌍 Foreign Server (Kharej)",
+        role_iran: "🇮🇷 Iran Server",
+        role_ready: "Ready to Configure",
+        checking_status: "Checking status...",
+        status_online: "Connected & Stable",
+        status_offline: "Stopped / Offline",
+
+        // Metrics
+        metric_ping_title: "📡 Inter-Server Latency (Ping)",
+        metric_ping_live: "Live",
+        metric_ping_none: "🔴 No Ping",
+        metric_ping_good: "🟢 Fast & Stable",
+        metric_ping_fair: "🟡 Moderate Latency",
+        metric_ping_high: "🔴 High Latency",
+        ping_peer_waiting: "Peer server: Waiting for connection",
+        ping_peer_dest: "Destination: {dest} ({host})",
+        target_iran: "Iran Server",
+        target_kharej: "Foreign Server",
+        metric_traffic_title: "📊 Total Server Traffic",
+        metric_download: "📥 Inbound (RX):",
+        metric_upload: "📤 Outbound (TX):",
+        metric_speed_title: "⚡ Live Network Speed",
+        metric_mode_title: "🔄 Tunnel Architecture & Mode",
+        metric_transport_prefix: "Transport Protocol: ",
+        metric_ports_title: "🔌 Active Forwarded Ports",
+        metric_ports_suffix: "active and routing traffic",
+        metric_uptime_title: "⏱️ Panel Uptime",
+        metric_version_prefix: "NORA Version: ",
+
+        // Tabs
+        tab_setup: "⚡ Setup & Connection",
+        tab_ports: "🔌 Port Forwarding",
+        tab_logs: "📜 Live Logs & Diagnostics",
+        tab_settings: "⚙️ Settings",
+
+        // Active Tunnel Card
+        active_tunnel_title: "⚡ Active Server Tunnel:",
+        active_tunnel_desc: "Tunnel is active on this server. To reconfigure, change servers, or reset all settings, use Remove Tunnel.",
+        btn_restart_tunnel: "🔄 Restart Tunnel",
+        btn_remove_tunnel: "🗑️ Remove Tunnel (Reset)",
+        status_running_suffix: " - Running",
+        status_stopped_suffix: " - Stopped",
+
+        // Kharej Setup
+        kharej_title: "🚀 Create New Tunnel (Foreign Server)",
+        kharej_desc: "Enter Iran server IP and mode. Generate the hash and paste it into the Iran server panel.",
+        engine_mode_label: "Select Backhaul Engine Mode:",
+        mode_reverse_name: "🔄 Backhaul Reverse",
+        mode_reverse_tag: "Recommended for Iran",
+        mode_reverse_desc: "Foreign connects to Iran server. Ports open on Iran. Best for bypassing telecommunication censorship.",
+        mode_direct_name: "➡️ Backhaul Direct",
+        mode_direct_tag: "Direct Connection",
+        mode_direct_desc: "Iran server acts as client and connects to Foreign server. Suitable when inbound ports are blocked in Iran.",
+        iran_ip_label: "Iran Server Public IP Address:",
+        iran_ip_ph: "e.g. 85.9.106.159",
+        transport_label: "Transport Protocol:",
+        ctrl_port_label: "Control Port:",
+        ports_label: "Forwarded Ports (comma-separated):",
+        ports_ph: "e.g. 443, 2053, 8080 or range 10000-10050",
+        ports_hint: "Enter target ports needed for your panel/inbounds (no defaults).",
+        btn_generate_hash: "⚡ Generate Connection Hash",
+        hash_box_title: "🔑 Tunnel Connection Hash (for Iran Server):",
+        btn_copy_hash: "📋 Copy Hash",
+        btn_select_text: "🔍 Select Text",
+        hash_hint: "💡 Click Copy or click the text area to select the hash, then paste it in your Iran server dashboard.",
+
+        // Iran Setup
+        iran_title: "📥 Quick Connect via Hash (Iran Server)",
+        iran_desc: "Paste the connection hash code generated from Foreign server and click Connect.",
+        paste_hash_label: "NORA Tunnel Hash Code (NORA://...):",
+        btn_connect_tunnel: "🔗 Connect & Start Tunnel",
+
+        // Operations
+        ops_title: "🎮 Tunnel Operations",
+        btn_stop_tunnel: "⏹️ Stop Tunnel Service",
+        btn_test_ping: "📶 Test Latency & Ping",
+
+        // Ports Tab
+        add_port_title: "🔌 Add New Port Forwarding",
+        add_port_desc: "Manage forwarded ports dynamically. Inbound traffic reaching this port in Iran will route directly to Foreign server.",
+        port_input_label: "Port number or port range:",
+        port_input_ph: "e.g. 443 or 8443=443 or 10000-10050",
+        btn_add_port: "➕ Add Port",
+        ports_table_title: "📋 Active Tunnel Ports",
+        th_iran_port: "Iran Port (Local)",
+        th_kharej_port: "Foreign Port (Remote)",
+        th_forward_type: "Forward Type",
+        th_status: "Status",
+        th_actions: "Actions",
+        no_ports_msg: "No ports configured yet.",
+        btn_delete: "🗑️ Delete",
+        type_range: "Port Range",
+        type_single: "Single Port",
+        status_active_tunnel: "🟢 Active in Tunnel",
+
+        // Logs Tab
+        logs_title: "📜 Live Tunnel Service Logs",
+        logs_desc: "Real-time Backhaul engine event logs for diagnostics and Layer-4 troubleshooting:",
+        btn_refresh_logs: "🔄 Refresh Logs",
+        btn_clear_logs: "🧹 Clear Screen",
+
+        // Settings Tab
+        settings_title: "🔐 Change Web Admin Credentials",
+        settings_desc: "Update your login username and password for NORA dashboard:",
+        user_label: "New Username:",
+        pass_label: "New Password:",
+        btn_save_creds: "💾 Save Credentials",
+        about_title: "ℹ️ About NORA TUNNEL",
+        about_desc: "Engineered specifically for automated high-performance Layer-4 tunneling powered by <strong>Backhaul v0.7.2</strong>.<br>Features dual <strong>Reverse</strong> and <strong>Direct</strong> modes with bidirectional hash-pairing.",
+
+        // Drawer Menu
+        drawer_nav_title: "Navigation & Pages",
+        drawer_sys_title: "System & Tools",
+        drawer_lang_title: "Language / زبان",
+        drawer_nav_setup: "Setup & Connection Hash",
+        drawer_nav_ports: "Port Forwarding",
+        drawer_nav_logs: "Live Logs & Diagnostics",
+        drawer_nav_settings: "Settings & Credentials",
+        drawer_update: "System Update",
+        drawer_update_sub: "Online self-update from panel",
+        drawer_restart: "Restart Tunnel Service",
+        drawer_remove: "Remove Tunnel (Reset)",
+        drawer_remove_sub: "Clear current config to start fresh",
+        drawer_ping: "Test Server Latency (Ping)",
+        drawer_logout: "Log Out",
+
+        // Update Modal
+        update_modal_title: "NORA TUNNEL System Update",
+        update_cur_ver: "Installed Version:",
+        update_lat_ver: "Latest on GitHub:",
+        update_notice: "The latest release will be downloaded and applied with zero downtime.",
+        update_btn_cancel: "Cancel",
+        update_btn_start: "⚡ Start Online Update",
+
+        // Login Overlay
+        login_title: "NORA TUNNEL",
+        login_sub: "Sign in to Layer-4 Backhaul Tunnel Management",
+        login_user_label: "Username:",
+        login_pass_label: "Password:",
+        login_btn: "🔐 Sign In to Dashboard",
+
+        // Alerts / Toasts / Dialogs
+        alert_confirm_remove: "Are you sure you want to completely remove this tunnel and reset all settings?\nYou will be able to configure a fresh tunnel.",
+        toast_removing_tunnel: "Removing tunnel and wiping configuration...",
+        toast_tunnel_removed: "Tunnel removed and reset successfully.",
+        toast_enter_iran_ip: "Please enter Iran server IP address.",
+        toast_enter_ports: "Please enter target ports (e.g. 443, 2053).",
+        toast_hash_generated: "Connection hash generated successfully! Ready to connect.",
+        toast_hash_selected: "Hash text selected (press Ctrl+C)",
+        toast_hash_copied: "Hash code copied to clipboard!",
+        toast_no_hash: "No hash has been generated yet.",
+        toast_login_success: "Logged in successfully.",
+        toast_fill_login: "Please enter both username and password.",
+        toast_restarting: "Restarting tunnel service...",
+        toast_restart_success: "Tunnel service restarted successfully.",
+        toast_stopping: "Stopping tunnel service...",
+        toast_stop_success: "Tunnel service stopped.",
+        toast_confirm_stop: "Are you sure you want to stop the tunnel service?",
+        toast_testing_ping: "Measuring server ping and latency...",
+        toast_ping_latency: "Peer latency: {ms} ms",
+        toast_port_added: "Port {port} added to tunnel successfully.",
+        toast_confirm_delete_port: "Are you sure you want to delete port {port}?",
+        toast_port_deleted: "Port {port} deleted successfully."
+      }
+    };
+
+    let currentLang = localStorage.getItem('nora_lang') || 'fa';
+
+    function t(key, params = {}) {
+      let str = (i18n[currentLang] && i18n[currentLang][key]) || (i18n['fa'][key]) || key;
+      for (const [k, v] of Object.entries(params)) {
+        str = str.replace(new RegExp(`\\{${k}\\}`, 'g'), v);
+      }
+      return str;
+    }
+
+    function setLanguage(lang, triggerRefresh = true) {
+      currentLang = lang;
+      localStorage.setItem('nora_lang', lang);
+
+      document.documentElement.dir = (lang === 'fa' ? 'rtl' : 'ltr');
+      document.documentElement.lang = lang;
+
+      const langBtnText = document.getElementById('lang-btn-text');
+      if (langBtnText) langBtnText.innerText = (lang === 'fa' ? 'EN' : 'FA');
+
+      const loginLangLabel = document.getElementById('login-lang-label');
+      if (loginLangLabel) loginLangLabel.innerText = (lang === 'fa' ? 'English' : 'فارسی');
+
+      const pillFa = document.getElementById('lang-pill-fa');
+      const pillEn = document.getElementById('lang-pill-en');
+      if (pillFa) pillFa.classList.toggle('active', lang === 'fa');
+      if (pillEn) pillEn.classList.toggle('active', lang === 'en');
+
+      // Update static data-i18n elements
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (i18n[lang] && i18n[lang][key]) {
+          el.innerHTML = i18n[lang][key];
+        }
+      });
+
+      // Update placeholders
+      document.querySelectorAll('[data-i18n-ph]').forEach(el => {
+        const key = el.getAttribute('data-i18n-ph');
+        if (i18n[lang] && i18n[lang][key]) {
+          el.placeholder = i18n[lang][key];
+        }
+      });
+
+      // Update element titles
+      document.querySelectorAll('[data-i18n-title]').forEach(el => {
+        const key = el.getAttribute('data-i18n-title');
+        if (i18n[lang] && i18n[lang][key]) {
+          el.title = i18n[lang][key];
+        }
+      });
+
+      document.title = (lang === 'fa' ? 'NORA TUNNEL — تانل هوشمند بک‌هال' : 'NORA TUNNEL — Smart Backhaul Management');
+
+      if (triggerRefresh) {
+        refreshStatus();
+      }
+    }
+
+    function toggleLanguage() {
+      setLanguage(currentLang === 'fa' ? 'en' : 'fa');
+    }
+
     let selectedMode = 'reverse';
     let currentPorts = [];
 
@@ -1389,7 +1925,7 @@
             localStorage.setItem('nora_token', data.obj.token);
           }
           document.getElementById('login-overlay').style.display = 'none';
-          showToast('ورود با موفقیت انجام شد.', 'success');
+          showToast(t('toast_login_success'), 'success');
           refreshStatus();
         } else {
           errEl.innerText = data.msg || 'نام کاربری یا رمز عبور اشتباه است.';
@@ -1425,15 +1961,15 @@
         const stText = document.getElementById('status-text');
         if (st.running) {
           dot.className = 'dot online';
-          stText.innerText = 'متصل و پایدار';
+          stText.innerText = t('status_online');
         } else {
           dot.className = 'dot offline';
-          stText.innerText = 'متوقف / قطع';
+          stText.innerText = t('status_offline');
         }
 
         // Role
         const role = cfg.role || 'none';
-        const roleText = role === 'kharej' ? '🌍 سرور خارج (Foreign)' : role === 'iran' ? '🇮🇷 سرور ایران (Iran)' : 'آماده پیکربندی';
+        const roleText = role === 'kharej' ? t('role_kharej') : role === 'iran' ? t('role_iran') : t('role_ready');
         document.getElementById('server-role-text').innerText = roleText;
 
         // Active Tunnel Card
@@ -1443,7 +1979,7 @@
           if (role !== 'none') {
             activeCard.style.display = 'block';
             if (roleBadge) {
-              roleBadge.innerText = (role === 'kharej' ? '🌍 سرور خارج (Kharej)' : '🇮🇷 سرور ایران (Iran)') + (st.running ? ' - در حال کار' : ' - متوقف');
+              roleBadge.innerText = (role === 'kharej' ? t('role_kharej') : t('role_iran')) + (st.running ? t('status_running_suffix') : t('status_stopped_suffix'));
               roleBadge.className = 'status-badge ' + (st.running ? 'connected' : 'disconnected');
             }
           } else {
@@ -1457,10 +1993,10 @@
         const pingPeer = document.getElementById('ping-peer-info');
 
         let targetPeer = cfg.iran_ip || '';
-        let targetLabel = 'سرور ایران';
+        let targetLabel = t('target_iran');
         if (cfg.role === 'iran') {
           targetPeer = cfg.kharej_ip || '';
-          targetLabel = 'سرور خارج';
+          targetLabel = t('target_kharej');
         }
 
         if (st.last_ping_ms && st.last_ping_ms > 0) {
@@ -1468,19 +2004,19 @@
           if (st.last_ping_ms < 80) {
             pingEl.style.color = 'var(--neon-cyan)';
             if (pingPill) {
-              pingPill.innerText = '🟢 عالی و پایدار';
+              pingPill.innerText = t('metric_ping_good');
               pingPill.style.color = 'var(--neon-cyan)';
             }
           } else if (st.last_ping_ms < 160) {
             pingEl.style.color = 'var(--warning)';
             if (pingPill) {
-              pingPill.innerText = '🟡 تاخیر مناسب';
+              pingPill.innerText = t('metric_ping_fair');
               pingPill.style.color = 'var(--warning)';
             }
           } else {
             pingEl.style.color = 'var(--danger)';
             if (pingPill) {
-              pingPill.innerText = '🔴 تاخیر بالا';
+              pingPill.innerText = t('metric_ping_high');
               pingPill.style.color = 'var(--danger)';
             }
           }
@@ -1488,16 +2024,16 @@
           pingEl.innerText = '--';
           pingEl.style.color = 'var(--text-muted)';
           if (pingPill) {
-            pingPill.innerText = '🔴 عدم برقراری پینگ';
+            pingPill.innerText = t('metric_ping_none');
             pingPill.style.color = 'var(--danger)';
           }
         }
 
         if (pingPeer) {
           if (targetPeer) {
-            pingPeer.innerText = `مقصد: ${targetLabel} (${targetPeer}:${cfg.control_port || 3080})`;
+            pingPeer.innerText = t('ping_peer_dest', { dest: targetLabel, host: `${targetPeer}:${cfg.control_port || 3080}` });
           } else {
-            pingPeer.innerText = 'سرور مقابل: در انتظار پیکربندی هش';
+            pingPeer.innerText = t('ping_peer_waiting');
           }
         }
 
@@ -1516,10 +2052,10 @@
         // Version tags
         const verStr = 'v' + (obj.version || '1.0.8').replace(/^v/, '');
         if (document.getElementById('metric-version-text')) {
-          document.getElementById('metric-version-text').innerText = 'نگارش NORA: ' + verStr;
+          document.getElementById('metric-version-text').innerText = t('metric_version_prefix') + verStr;
         }
         if (document.getElementById('drawer-version-tag')) {
-          document.getElementById('drawer-version-tag').innerText = 'نسخه فعال ' + verStr;
+          document.getElementById('drawer-version-tag').innerText = t('drawer_active_version', { ver: verStr });
         }
         if (document.getElementById('modal-current-version')) {
           document.getElementById('modal-current-version').innerText = verStr;
@@ -1528,7 +2064,7 @@
         // Mode and Transport
         document.getElementById('metric-mode').innerText = (cfg.mode === 'direct' ? 'Backhaul Direct' : 'Backhaul Reverse');
         if (document.getElementById('metric-transport-info')) {
-          document.getElementById('metric-transport-info').innerText = 'پروتکل انتقال: ' + (cfg.transport || 'tcpmux');
+          document.getElementById('metric-transport-info').innerText = t('metric_transport_prefix') + (cfg.transport || 'tcpmux');
         }
 
         // Ports
@@ -1568,7 +2104,7 @@
     function renderPortsTable(ports) {
       const tbody = document.getElementById('ports-table-body');
       if (!ports || ports.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">هیچ پورتی اضافه نشده است.</td></tr>';
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">${t('no_ports_msg')}</td></tr>`;
         return;
       }
 
@@ -1584,11 +2120,11 @@
           <tr>
             <td><strong style="color: var(--neon-cyan)">${local}</strong></td>
             <td><strong>${remote}</strong></td>
-            <td><span style="font-size: 11px; color: var(--text-muted);">${p.includes('-') ? 'بازه پورت‌ها (Range)' : 'تک پورت'}</span></td>
-            <td><span style="color: var(--success); font-size: 12px;">🟢 فعال در تانل</span></td>
+            <td><span style="font-size: 11px; color: var(--text-muted);">${p.includes('-') ? t('type_range') : t('type_single')}</span></td>
+            <td><span style="color: var(--success); font-size: 12px;">${t('status_active_tunnel')}</span></td>
             <td>
               <button class="btn btn-danger" style="padding: 4px 10px; font-size: 11px;" onclick="deletePortAction('${p}')">
-                🗑️ حذف
+                ${t('btn_delete')}
               </button>
             </td>
           </tr>
@@ -1599,7 +2135,7 @@
     async function generateHashAction() {
       const iranIP = document.getElementById('iran-ip-input').value.trim();
       if (!iranIP) {
-        showToast('لطفاً آدرس IP سرور ایران را وارد کنید.', 'error');
+        showToast(t('toast_enter_iran_ip'), 'error');
         return;
       }
 
@@ -1607,13 +2143,13 @@
       const ctrlPort = parseInt(document.getElementById('ctrl-port-input').value) || 3080;
       const portsRaw = document.getElementById('initial-ports-input').value.trim();
       if (!portsRaw) {
-        showToast('لطفاً پورت‌های مورد نظر برای تانل را وارد کنید (مثال: 443, 2053).', 'error');
+        showToast(t('toast_enter_ports'), 'error');
         document.getElementById('initial-ports-input').focus();
         return;
       }
       const initialPorts = portsRaw.split(',').map(s => s.trim()).filter(Boolean);
       if (initialPorts.length === 0) {
-        showToast('لطفاً حداقل یک پورت معتبر وارد کنید.', 'error');
+        showToast(t('toast_ports_invalid'), 'error');
         return;
       }
 
@@ -1641,7 +2177,7 @@
             }
           }
           document.getElementById('hash-box').style.display = 'flex';
-          showToast('هش اتصال با موفقیت تولید شد و سرور خارج آماده اتصال است.', 'success');
+          showToast(t('toast_hash_generated'), 'success');
           refreshStatus();
         } else {
           showToast(data.msg || 'خطا در ایجاد تانل', 'error');
@@ -1656,7 +2192,7 @@
       if (el) {
         el.focus();
         el.select();
-        showToast('متن هش انتخاب شد (Ctrl+C بزنید)', 'info');
+        showToast(t('toast_hash_selected'), 'info');
       }
     }
 
@@ -1664,7 +2200,7 @@
       const el = document.getElementById('generated-hash-text');
       const txt = (el ? (el.value || el.innerText || '') : '').trim();
       if (!txt) {
-        showToast('هنوز هشی تولید نشده است.', 'error');
+        showToast(t('toast_no_hash'), 'error');
         return;
       }
 
@@ -1682,17 +2218,17 @@
 
       if (!copied && navigator.clipboard && window.isSecureContext) {
         navigator.clipboard.writeText(txt).then(() => {
-          showToast('هش اتصال در کلیپ‌بورد کپی شد! 📋', 'success');
+          showToast(t('toast_hash_copied'), 'success');
         }).catch(() => {
-          showToast('متن هش انتخاب شد (Ctrl+C بزنید).', 'info');
+          showToast(t('toast_hash_selected'), 'info');
         });
         return;
       }
 
       if (copied) {
-        showToast('هش اتصال در کلیپ‌بورد کپی شد! 📋', 'success');
+        showToast(t('toast_hash_copied'), 'success');
       } else {
-        showToast('متن هش انتخاب شد (Ctrl+C بزنید).', 'info');
+        showToast(t('toast_hash_selected'), 'info');
       }
     }
 
@@ -1700,11 +2236,11 @@
       const hashInput = document.getElementById('paste-hash-input');
       const hashStr = (hashInput ? hashInput.value : '').trim();
       if (!hashStr) {
-        showToast('لطفاً هش اتصال NORA را وارد کنید.', 'error');
+        showToast(t('toast_enter_hash'), 'error');
         return;
       }
 
-      showToast('در حال اعمال تنظیمات و اتصال به تانل...', 'info');
+      showToast(t('toast_applying_hash'), 'info');
 
       try {
         const res = await authFetch('/api/tunnel/connect', {
@@ -1714,12 +2250,12 @@
         });
         if (res.status === 401) {
           document.getElementById('login-overlay').style.display = 'flex';
-          showToast('نشست منقضی شده، لطفاً مجدداً وارد شوید.', 'error');
+          showToast(t('toast_session_expired'), 'error');
           return;
         }
         const data = await res.json();
         if (data.success) {
-          showToast('تانل در سرور ایران با موفقیت فعال و متصل شد! 🚀', 'success');
+          showToast(t('toast_iran_connected'), 'success');
           setTimeout(refreshStatus, 1000);
         } else {
           showToast(data.msg || 'خطا در اعمال هش تانل', 'error');
@@ -1734,7 +2270,7 @@
         const res = await authFetch('/api/tunnel/restart', { method: 'POST' });
         const data = await res.json();
         if (data.success) {
-          showToast('سرویس تانل با موفقیت ری‌استارت شد.', 'success');
+          showToast(t('toast_restart_success'), 'success');
           refreshStatus();
         } else {
           showToast(data.msg || 'خطا در ری‌استارت', 'error');
@@ -1750,7 +2286,7 @@
         const res = await authFetch('/api/tunnel/stop', { method: 'POST' });
         const data = await res.json();
         if (data.success) {
-          showToast('سرویس تانل متوقف شد.', 'info');
+          showToast(t('toast_stop_success'), 'info');
           refreshStatus();
         }
       } catch (e) {
@@ -1759,16 +2295,16 @@
     }
 
     async function removeTunnelAction() {
-      if (!confirm('آیا از حذف کامل تانل و ریست تنظیمات اطمینان دارید؟\nبا این کار کانفیگ تانل پاک می‌شود و می‌توانید تانل جدید بسازید.')) {
+      if (!confirm(t('alert_confirm_remove'))) {
         return;
       }
 
-      showToast('در حال حذف تانل و پاک‌سازی کامل تنظیمات...', 'info');
+      showToast(t('toast_removing_tunnel'), 'info');
       try {
         const res = await authFetch('/api/tunnel/remove', { method: 'POST' });
         const data = await res.json();
         if (data.success) {
-          showToast(data.msg || 'تانل با موفقیت حذف شد.', 'success');
+          showToast(data.msg || t('toast_tunnel_removed'), 'success');
           document.getElementById('iran-ip-input').value = '';
           document.getElementById('paste-hash-input').value = '';
           const hashEl = document.getElementById('generated-hash-text');
@@ -1784,12 +2320,12 @@
     }
 
     async function testPingAction() {
-      showToast('در حال سنجش پینگ و سلامت ارتباط...', 'info');
+      showToast(t('toast_testing_ping'), 'info');
       try {
         const res = await authFetch('/api/ping');
         const data = await res.json();
         if (data.success) {
-          showToast(`تاخیر ارتباط با سرور مقابل: ${data.obj.latency_ms} میلی‌ثانیه`, 'success');
+          showToast(t('toast_ping_latency', { ms: data.obj.latency_ms }), 'success');
           refreshStatus();
         } else {
           showToast('پینگ برقرار نشد: ' + data.msg, 'error');
@@ -1811,7 +2347,7 @@
         });
         const data = await res.json();
         if (data.success) {
-          showToast(`پورت ${portVal} با موفقیت به تانل اضافه شد.`, 'success');
+          showToast(t('toast_port_added', { port: portVal }), 'success');
           document.getElementById('new-port-input').value = '';
           refreshStatus();
         } else {
@@ -1836,7 +2372,7 @@
           body: JSON.stringify({ port: p })
         });
       }
-      showToast('تمام پورت‌های استاندارد افزوده شدند.', 'success');
+      showToast(t('toast_all_ports_added'), 'success');
       refreshStatus();
     }
 
@@ -1850,7 +2386,7 @@
         });
         const data = await res.json();
         if (data.success) {
-          showToast(`پورت ${port} حذف شد.`, 'info');
+          showToast(t('toast_port_deleted', { port: port }), 'info');
           refreshStatus();
         }
       } catch (e) {
@@ -1886,7 +2422,7 @@
       const u = document.getElementById('new-username-input').value.trim();
       const p = document.getElementById('new-password-input').value.trim();
       if (!u && !p) {
-        showToast('حداقل نام کاربری یا رمز عبور جدید را وارد کنید.', 'error');
+        showToast(t('toast_fill_creds'), 'error');
         return;
       }
 
@@ -1898,7 +2434,7 @@
         });
         const data = await res.json();
         if (data.success) {
-          showToast('اطلاعات امنیتی با موفقیت بروزرسانی شد.', 'success');
+          showToast(t('toast_creds_updated'), 'success');
         } else {
           showToast(data.msg || 'خطا در ذخیره', 'error');
         }
@@ -1986,7 +2522,7 @@
         const data = await res.json();
         if (data.success) {
           progressText.innerText = 'بروزرسانی با موفقیت انجام شد! در حال راه‌اندازی سرویس...';
-          showToast(data.msg || 'پنل بروزرسانی شد', 'success');
+          showToast(data.msg || t('toast_panel_updated'), 'success');
 
           let countdown = 4;
           const timer = setInterval(() => {
@@ -2033,6 +2569,7 @@
     }
 
     // Init & Polling
+    setLanguage(currentLang, false);
     refreshStatus();
     checkVersionBadge();
     setInterval(refreshStatus, 3000);
