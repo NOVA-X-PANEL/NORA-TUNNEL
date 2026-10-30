@@ -1322,11 +1322,14 @@
         <div class="form-row" style="align-items: flex-end;">
           <div class="form-group" style="flex: 2; margin-bottom: 0;">
             <label class="form-label" data-i18n="port_input_label">شماره پورت یا رِنج پورت‌ها:</label>
-            <input type="text" class="form-input" id="new-port-input" placeholder="مثال: 443 یا 8443=443 یا 10000-10050" data-i18n-ph="port_input_ph">
+            <input type="text" class="form-input" id="new-port-input" placeholder="مثال: 443 یا 8080=443 یا 10000-10050" data-i18n-ph="port_input_ph">
           </div>
           <button class="btn btn-primary" onclick="addPortAction()" style="height: 44px;">
             <span data-i18n="btn_add_port">➕ افزودن پورت</span>
           </button>
+        </div>
+        <div style="font-size: 11px; color: var(--text-muted); margin-top: 10px; line-height: 1.6;" data-i18n="port_mapping_hint">
+          💡 نکته نگاشت پورت: اگر در خارج فقط پورت 443 را دارید اما در ایران می‌خواهید با پورت دیگری وصل شوید، بنویسید: 8080=443. اگر فقط بنویسید 8080، باید حتماً در سرور خارج هم اینباندی روی پورت 8080 روشن باشد.
         </div>
       </div>
 
@@ -1408,6 +1411,7 @@
         tunnel_flow_step1_desc: "در اتصال اولیه نیازی به وارد کردن هیچ پورتی نیست. کد هش را تولید کرده و در سرور ایران متصل کنید. پس از اتصال، پورت‌های مورد نظر خود را در تب «مدیریت پورت‌ها» در سرور ایران فوروارد کنید.",
         tunnel_flow_step2_title: "مرحله ۲: فوروارد پورت‌ها در سرور ایران",
         tunnel_flow_step2_desc: "پس از اتصال موفق تانل، هر پورتی که نیاز دارید (مانند 443، 2053، یا رِنج 10000-10050) را در کادر زیر وارد کنید. ترافیک ورودی به این پورت‌ها در سرور ایران فوراً از طریق تانل به سرور خارج هدایت می‌شود.",
+        port_mapping_hint: "💡 نکته نگاشت پورت: اگر در خارج فقط پورت 443 را دارید اما در ایران می‌خواهید با پورت دیگری وصل شوید، بنویسید: 8080=443. اگر فقط بنویسید 8080، باید حتماً در سرور خارج هم اینباندی روی پورت 8080 روشن باشد.",
 
         toast_ports_invalid: "لطفاً حداقل یک پورت معتبر وارد کنید.",
         toast_enter_hash: "لطفاً هش اتصال NORA را وارد کنید.",
@@ -1606,6 +1610,7 @@
         tunnel_flow_step1_desc: "No ports are required during initial tunnel setup. Generate the hash and connect it on your Iran server. After the tunnel is established, add your desired ports in the 'Port Forwarding' tab on your Iran server.",
         tunnel_flow_step2_title: "Step 2: Forward Ports on Iran Server",
         tunnel_flow_step2_desc: "After establishing the tunnel, enter any ports you need (e.g. 443, 2053, or a range like 10000-10050) below. Inbound traffic reaching these ports on your Iran server will immediately route through the tunnel to your Foreign server.",
+        port_mapping_hint: "💡 Port Mapping Tip: If your foreign server inbound is on port 443 but you want to connect via another port in Iran, enter: 8080=443. If you enter just 8080, your foreign server must also have an inbound listening on port 8080.",
 
         toast_ports_invalid: "Please enter at least one valid port.",
         toast_enter_hash: "Please paste the NORA connection hash.",

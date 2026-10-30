@@ -11,6 +11,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -498,6 +499,20 @@ func (s *Server) handleAddPort(w http.ResponseWriter, r *http.Request) {
 
 	// Reload Backhaul with new port list
 	_ = s.bhMgr.UpdatePorts(cfg)
+
+	// Ensure port is allowed in iptables & ufw if running as root
+	if os.Geteuid() == 0 {
+		cleanPort := req.Port
+		if strings.Contains(cleanPort, "=") {
+			cleanPort = strings.Split(cleanPort, "=")[0]
+		}
+		cleanPort = strings.TrimSpace(cleanPort)
+		if cleanPort != "" {
+			_ = exec.Command("iptables", "-I", "INPUT", "-p", "tcp", "--dport", cleanPort, "-j", "ACCEPT").Run()
+			_ = exec.Command("iptables", "-I", "INPUT", "-p", "udp", "--dport", cleanPort, "-j", "ACCEPT").Run()
+			_ = exec.Command("ufw", "allow", cleanPort).Run()
+		}
+	}
 
 	s.jsonResponse(w, true, "Port added successfully", map[string]interface{}{
 		"ports": cfg.Ports,

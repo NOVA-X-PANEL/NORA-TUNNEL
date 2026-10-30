@@ -242,6 +242,7 @@ func (m *Manager) GenerateConfig(cfg config.TunnelConfig) (string, error) {
 		sb.WriteString("[server]\n")
 		sb.WriteString(fmt.Sprintf("bind_addr = \"0.0.0.0:%d\"\n", cfg.ControlPort))
 		sb.WriteString(fmt.Sprintf("transport = \"%s\"\n", cfg.Transport))
+		sb.WriteString("accept_udp = true\n")
 		sb.WriteString(fmt.Sprintf("token = \"%s\"\n", cfg.Token))
 		sb.WriteString("keepalive_period = 75\n")
 		sb.WriteString("nodelay = true\n")
