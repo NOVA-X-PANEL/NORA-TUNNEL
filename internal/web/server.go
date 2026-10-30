@@ -76,6 +76,7 @@ func (s *Server) registerRoutes() {
 	s.mux.HandleFunc("/api/system/version", s.handleSystemVersion)
 	s.mux.HandleFunc("/api/system/update", s.handleSystemUpdate)
 	s.mux.HandleFunc("/api/system/diag", s.handleSystemDiag)
+	s.mux.HandleFunc("/api/traffic/reset", s.handleResetTraffic)
 
 	// Static web files
 	subFS, err := fs.Sub(webFS, "assets")
@@ -773,4 +774,13 @@ func (s *Server) handleSystemDiag(w http.ResponseWriter, r *http.Request) {
 		"uptime":          string(uptimeOut),
 		"proc_net_dev":    string(procNetDev),
 	})
+}
+
+func (s *Server) handleResetTraffic(w http.ResponseWriter, r *http.Request) {
+	if !s.isAuthenticated(r) {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	traffic.GetCollector().Reset()
+	s.jsonResponse(w, true, "Traffic counter reset to 0 B successfully", nil)
 }

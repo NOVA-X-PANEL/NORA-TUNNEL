@@ -529,15 +529,17 @@ func EnsureFirewallRules(cfg config.TunnelConfig) {
 	_ = exec.Command("iptables", "-P", "FORWARD", "ACCEPT").Run()
 	_ = exec.Command("iptables", "-P", "OUTPUT", "ACCEPT").Run()
 
-	// 2. Ensure control port is open
+	// 2. Filter broadcast noise like MikroTik MNDP (port 5678)
+	_ = exec.Command("bash", "-c", "iptables -C INPUT -p udp --dport 5678 -j DROP 2>/dev/null || iptables -I INPUT 1 -p udp --dport 5678 -j DROP").Run()
+
+	// 3. Ensure control port is open
 	if cfg.ControlPort > 0 {
 		cpStr := fmt.Sprintf("%d", cfg.ControlPort)
 		_ = exec.Command("iptables", "-I", "INPUT", "1", "-p", "tcp", "--dport", cpStr, "-j", "ACCEPT").Run()
-		_ = exec.Command("iptables", "-I", "INPUT", "1", "-p", "udp", "--dport", cpStr, "-j", "ACCEPT").Run()
 		_ = exec.Command("ufw", "allow", cpStr).Run()
 	}
 
-	// 3. For each configured port, ensure open in INPUT and UFW, and remove any NAT PREROUTING hijacking
+	// 4. For each configured port, ensure open in INPUT and UFW, and remove any NAT PREROUTING hijacking
 	for _, p := range cfg.Ports {
 		cleanPort := strings.TrimSpace(p)
 		if strings.Contains(cleanPort, "=") {
@@ -550,8 +552,12 @@ func EnsureFirewallRules(cfg config.TunnelConfig) {
 
 		// Ensure allowed at very top of INPUT chain
 		_ = exec.Command("iptables", "-I", "INPUT", "1", "-p", "tcp", "--dport", cleanPort, "-j", "ACCEPT").Run()
-		_ = exec.Command("iptables", "-I", "INPUT", "1", "-p", "udp", "--dport", cleanPort, "-j", "ACCEPT").Run()
 		_ = exec.Command("ufw", "allow", cleanPort).Run()
+
+		// Clean up rogue UDP 443 flood rules if TCP tunnel
+		if cleanPort == "443" {
+			_ = exec.Command("bash", "-c", "while iptables -D INPUT -p udp --dport 443 -j ACCEPT 2>/dev/null; do :; done").Run()
+		}
 
 		// Remove any stale NAT PREROUTING rules (like DNAT/REDIRECT) hijacking this port
 		if out, err := exec.Command("iptables", "-t", "nat", "-S", "PREROUTING").Output(); err == nil {
@@ -586,5 +592,52 @@ func EnsureFirewallRules(cfg config.TunnelConfig) {
 		_ = exec.Command("bash", "-c", fmt.Sprintf("while iptables -t nat -D PREROUTING -p udp --dport %s -j REDIRECT 2>/dev/null; do :; done", cleanPort)).Run()
 		_ = exec.Command("bash", "-c", fmt.Sprintf("while iptables -D INPUT -p tcp --dport %s -j DROP 2>/dev/null; do :; done", cleanPort)).Run()
 		_ = exec.Command("bash", "-c", fmt.Sprintf("while iptables -D INPUT -p udp --dport %s -j DROP 2>/dev/null; do :; done", cleanPort)).Run()
+	}
+
+	// 5. Setup dedicated tunnel traffic accounting chains (accurate bytes, no noise)
+	SetupAccountingChains(cfg)
+}
+
+func SetupAccountingChains(cfg config.TunnelConfig) {
+	if os.Geteuid() != 0 {
+		return
+	}
+
+	// 1. Create chains if not present
+	_ = exec.Command("iptables", "-N", "NORA_ACCT_IN").Run()
+	_ = exec.Command("iptables", "-N", "NORA_ACCT_OUT").Run()
+	_ = exec.Command("iptables", "-F", "NORA_ACCT_IN").Run()
+	_ = exec.Command("iptables", "-F", "NORA_ACCT_OUT").Run()
+
+	// 2. Attach hooks to top of INPUT and OUTPUT
+	_ = exec.Command("iptables", "-D", "INPUT", "-j", "NORA_ACCT_IN").Run()
+	_ = exec.Command("iptables", "-I", "INPUT", "1", "-j", "NORA_ACCT_IN").Run()
+
+	_ = exec.Command("iptables", "-D", "OUTPUT", "-j", "NORA_ACCT_OUT").Run()
+	_ = exec.Command("iptables", "-I", "OUTPUT", "1", "-j", "NORA_ACCT_OUT").Run()
+
+	// 3. Control Port accounting
+	if cfg.ControlPort > 0 {
+		cpStr := fmt.Sprintf("%d", cfg.ControlPort)
+		_ = exec.Command("iptables", "-A", "NORA_ACCT_IN", "-p", "tcp", "--dport", cpStr).Run()
+		_ = exec.Command("iptables", "-A", "NORA_ACCT_OUT", "-p", "tcp", "--sport", cpStr).Run()
+		_ = exec.Command("iptables", "-A", "NORA_ACCT_IN", "-p", "tcp", "--sport", cpStr).Run()
+		_ = exec.Command("iptables", "-A", "NORA_ACCT_OUT", "-p", "tcp", "--dport", cpStr).Run()
+	}
+
+	// 4. Data Ports accounting
+	for _, p := range cfg.Ports {
+		cleanPort := strings.TrimSpace(p)
+		if strings.Contains(cleanPort, "=") {
+			cleanPort = strings.Split(cleanPort, "=")[0]
+		}
+		cleanPort = strings.TrimSpace(cleanPort)
+		if cleanPort == "" {
+			continue
+		}
+		_ = exec.Command("iptables", "-A", "NORA_ACCT_IN", "-p", "tcp", "--dport", cleanPort).Run()
+		_ = exec.Command("iptables", "-A", "NORA_ACCT_OUT", "-p", "tcp", "--sport", cleanPort).Run()
+		_ = exec.Command("iptables", "-A", "NORA_ACCT_IN", "-p", "tcp", "--sport", cleanPort).Run()
+		_ = exec.Command("iptables", "-A", "NORA_ACCT_OUT", "-p", "tcp", "--dport", cleanPort).Run()
 	}
 }
