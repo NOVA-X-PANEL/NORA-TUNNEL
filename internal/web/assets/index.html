@@ -1,0 +1,1230 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NORA TUNNEL — تانل هوشمند بک‌هال</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-base: #08090e;
+      --bg-card: rgba(16, 18, 27, 0.75);
+      --bg-card-hover: rgba(22, 25, 38, 0.85);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --border-glow: rgba(0, 245, 212, 0.35);
+      --neon-cyan: #00f5d4;
+      --neon-pink: #ff007f;
+      --neon-purple: #9d4edd;
+      --neon-blue: #00b4d8;
+      --neon-yellow: #fee440;
+      --text-main: #f8f9fa;
+      --text-muted: #94a3b8;
+      --success: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --radius: 16px;
+      --glow-cyan: 0 0 20px rgba(0, 245, 212, 0.35);
+      --glow-pink: 0 0 20px rgba(255, 0, 127, 0.35);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Vazirmatn', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      outline: none;
+    }
+
+    body {
+      background-color: var(--bg-base);
+      background-image: 
+        radial-gradient(circle at 15% 20%, rgba(157, 78, 221, 0.12) 0%, transparent 40%),
+        radial-gradient(circle at 85% 80%, rgba(0, 245, 212, 0.1) 0%, transparent 40%),
+        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 100% 100%, 100% 100%, 32px 32px, 32px 32px;
+      color: var(--text-main);
+      min-height: 100vh;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Container */
+    .app-container {
+      max-width: 1200px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 24px 20px 60px;
+    }
+
+    /* Top Bar */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 24px;
+      background: var(--bg-card);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      margin-bottom: 24px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .brand-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--neon-pink), var(--neon-purple));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 20px;
+      color: #fff;
+      box-shadow: var(--glow-pink);
+    }
+
+    .brand-title {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(90deg, #fff, var(--neon-cyan));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: -2px;
+    }
+
+    .top-stats {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+      border: 1px solid var(--border-color);
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--text-muted);
+      display: inline-block;
+    }
+
+    .dot.online {
+      background: var(--neon-cyan);
+      box-shadow: 0 0 10px var(--neon-cyan);
+      animation: pulse 2s infinite;
+    }
+
+    .dot.offline {
+      background: var(--danger);
+      box-shadow: 0 0 8px var(--danger);
+    }
+
+    .dot.waiting {
+      background: var(--warning);
+      box-shadow: 0 0 8px var(--warning);
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.3); opacity: 0.7; }
+    }
+
+    /* Metric Cards Grid */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 18px;
+      margin-bottom: 24px;
+    }
+
+    .metric-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      transition: all 0.25s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .metric-card:hover {
+      border-color: rgba(0, 245, 212, 0.4);
+      transform: translateY(-2px);
+    }
+
+    .metric-card::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--neon-cyan), transparent);
+      opacity: 0.6;
+    }
+
+    .metric-label {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .metric-val {
+      font-size: 24px;
+      font-weight: 800;
+      color: #fff;
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+
+    .metric-unit {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+
+    /* Navigation Tabs */
+    .tabs-bar {
+      display: flex;
+      gap: 10px;
+      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 24px;
+      padding-bottom: 12px;
+      overflow-x: auto;
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      padding: 10px 20px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .tab-btn:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .tab-btn.active {
+      color: var(--neon-cyan);
+      background: rgba(0, 245, 212, 0.1);
+      border-color: rgba(0, 245, 212, 0.3);
+      box-shadow: 0 0 15px rgba(0, 245, 212, 0.15);
+    }
+
+    /* Main Sections */
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .card {
+      background: var(--bg-card);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+
+    .card-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #fff;
+    }
+
+    .card-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+      line-height: 1.6;
+    }
+
+    /* Form Controls */
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .form-input, .form-select {
+      width: 100%;
+      padding: 12px 16px;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      color: #fff;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+
+    .form-input:focus, .form-select:focus {
+      border-color: var(--neon-cyan);
+      box-shadow: 0 0 12px rgba(0, 245, 212, 0.25);
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+    }
+
+    /* Radio Mode Cards */
+    .mode-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .mode-card {
+      border: 1px solid var(--border-color);
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 12px;
+      padding: 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+
+    .mode-card:hover {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .mode-card.selected {
+      border-color: var(--neon-cyan);
+      background: rgba(0, 245, 212, 0.06);
+      box-shadow: 0 0 16px rgba(0, 245, 212, 0.15);
+    }
+
+    .mode-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .mode-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .mode-tag {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: rgba(0, 245, 212, 0.15);
+      color: var(--neon-cyan);
+    }
+
+    .mode-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--neon-cyan), #00b4d8);
+      color: #0b0d14;
+      box-shadow: 0 4px 16px rgba(0, 245, 212, 0.3);
+    }
+
+    .btn-primary:hover {
+      box-shadow: 0 6px 24px rgba(0, 245, 212, 0.5);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+      border: 1px solid var(--border-color);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--danger);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .btn-danger:hover {
+      background: rgba(239, 68, 68, 0.25);
+    }
+
+    /* Hash Box */
+    .hash-display-box {
+      background: rgba(0, 0, 0, 0.6);
+      border: 1px solid rgba(0, 245, 212, 0.3);
+      border-radius: 12px;
+      padding: 16px;
+      margin-top: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .hash-text {
+      font-family: monospace;
+      font-size: 13px;
+      color: var(--neon-cyan);
+      word-break: break-all;
+      line-height: 1.5;
+      direction: ltr;
+      text-align: left;
+      user-select: all;
+    }
+
+    /* Port Chips */
+    .chips-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .chip {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .chip:hover {
+      background: rgba(0, 245, 212, 0.1);
+      border-color: var(--neon-cyan);
+      color: #fff;
+    }
+
+    /* Table */
+    .table-responsive {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: right;
+    }
+
+    th {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-muted);
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-color);
+      background: rgba(0, 0, 0, 0.2);
+    }
+
+    td {
+      padding: 14px 16px;
+      font-size: 13px;
+      border-bottom: 1px solid var(--border-color);
+      color: #fff;
+    }
+
+    tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    /* Terminal / Log box */
+    .log-box {
+      background: #040508;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 16px;
+      height: 350px;
+      overflow-y: auto;
+      font-family: monospace;
+      font-size: 12px;
+      line-height: 1.7;
+      direction: ltr;
+      text-align: left;
+      color: #a7f3d0;
+    }
+
+    .log-box .log-err { color: #f87171; }
+    .log-box .log-warn { color: #fbbf24; }
+    .log-box .log-info { color: #60a5fa; }
+
+    /* Alert / Banner */
+    .banner {
+      padding: 14px 18px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      font-size: 13px;
+      line-height: 1.6;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .banner-info {
+      background: rgba(0, 180, 216, 0.1);
+      border: 1px solid rgba(0, 180, 216, 0.3);
+      color: #caf0f8;
+    }
+
+    .banner-success {
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #a7f3d0;
+    }
+
+    /* Toast Notification */
+    #toast-container {
+      position: fixed;
+      bottom: 24px;
+      left: 24px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .toast {
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #fff;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+      animation: slideIn 0.3s ease;
+      min-width: 250px;
+    }
+
+    .toast.success { background: #059669; border: 1px solid #10b981; }
+    .toast.error { background: #b91c1c; border: 1px solid #ef4444; }
+    .toast.info { background: #0284c7; border: 1px solid #38bdf8; }
+
+    @keyframes slideIn {
+      from { transform: translateX(-100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      header { flex-direction: column; gap: 14px; align-items: flex-start; }
+      .top-stats { width: 100%; justify-content: space-between; }
+      .metrics-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+
+    <!-- Top Header -->
+    <header>
+      <div class="brand">
+        <div class="brand-icon">⚡</div>
+        <div>
+          <div class="brand-title">NORA TUNNEL PRO</div>
+          <div class="brand-sub">اتوماسیون هوشمند تانل بک‌هال لایه ۴ (Backhaul)</div>
+        </div>
+      </div>
+
+      <div class="top-stats">
+        <div class="status-badge" id="role-badge">
+          <span>نقش سرور:</span>
+          <strong id="server-role-text" style="color: var(--neon-cyan)">تشخیص نشده</strong>
+        </div>
+
+        <div class="status-badge">
+          <span class="dot" id="status-dot"></span>
+          <span id="status-text">بررسی وضعیت...</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Metrics Cards -->
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-label">📡 تاخیر زنده (Latency RTT)</div>
+        <div class="metric-val">
+          <span id="metric-ping">--</span>
+          <span class="metric-unit">ms</span>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-label">🔄 معماری و حالت تانل</div>
+        <div class="metric-val" style="font-size: 18px;" id="metric-mode">
+          Backhaul Reverse
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-label">🔌 پورت‌های فوروارد فعال</div>
+        <div class="metric-val">
+          <span id="metric-ports-count">0</span>
+          <span class="metric-unit">پورت</span>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-label">⏱️ مدت زمان اتصال (Uptime)</div>
+        <div class="metric-val" style="font-size: 19px;" id="metric-uptime">
+          00:00:00
+        </div>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="tabs-bar">
+      <button class="tab-btn active" onclick="switchTab('setup')">⚡ راه‌اندازی و اتصال</button>
+      <button class="tab-btn" onclick="switchTab('ports')">🔌 مدیریت پورت‌ها (Port Forwarding)</button>
+      <button class="tab-btn" onclick="switchTab('logs')">📜 لاگ زنده و عیب‌یابی</button>
+      <button class="tab-btn" onclick="switchTab('settings')">⚙️ تنظیمات</button>
+    </div>
+
+    <!-- TAB 1: SETUP -->
+    <div id="tab-setup" class="tab-content active">
+
+      <!-- KHOREJ SETUP CARD -->
+      <div class="card" id="kharej-setup-card">
+        <div class="card-title">🚀 ایجاد تانل جدید (مخصوص سرور خارج)</div>
+        <div class="card-desc">
+          آی‌پی سرور ایران و حالت تانل را مشخص کنید. سپس دکمه تولید هش را بزنید و کد ایجاد شده را در پنل سرور ایران پیست کنید.
+        </div>
+
+        <!-- Mode Select -->
+        <label class="form-label">انتخاب حالت هسته بک‌هال (Engine Mode):</label>
+        <div class="mode-cards">
+          <div class="mode-card selected" id="mode-reverse" onclick="selectMode('reverse')">
+            <div class="mode-card-header">
+              <span class="mode-name">🔄 بک‌هال ریورس (Reverse)</span>
+              <span class="mode-tag">پیشنهادی برای ایران</span>
+            </div>
+            <div class="mode-desc">
+              سرور خارج به سمت سرور ایران متصل می‌شود. پورت‌ها روی سرور ایران باز می‌شوند. بهترین حالت برای عبور از فیلترینگ شدید مخابرات.
+            </div>
+          </div>
+
+          <div class="mode-card" id="mode-direct" onclick="selectMode('direct')">
+            <div class="mode-card-header">
+              <span class="mode-name">➡️ بک‌هال دایرکت (Direct)</span>
+              <span class="mode-tag">ارتباط مستقیم</span>
+            </div>
+            <div class="mode-desc">
+              سرور ایران کلاینت است و به سرور خارج متصل می‌شود. مناسب برای سرورهایی که پورت ورودی ایران بسته است.
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">آدرس IP سرور ایران (Iran Server Public IP):</label>
+            <input type="text" class="form-input" id="iran-ip-input" placeholder="مثال: 85.9.106.159">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">پروتکل ترنسپورت (Transport):</label>
+            <select class="form-select" id="transport-select">
+              <option value="tcpmux" selected>tcpmux (مالتی‌پلکس فوق‌سریع - پیش‌فرض)</option>
+              <option value="ws">WebSocket (WS - سبک)</option>
+              <option value="tcp">TCP ساده (سازگارترین)</option>
+              <option value="wsmux">WS Mux</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">پورت کنترل بک‌هال (Control Port):</label>
+            <input type="number" class="form-input" id="ctrl-port-input" value="3080">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">پورت‌های اولیه جهت فوروارد (جداشده با کاما):</label>
+          <input type="text" class="form-input" id="initial-ports-input" value="443, 2053, 2083, 8080, 8443, 2087, 2096">
+        </div>
+
+        <button class="btn btn-primary" onclick="generateHashAction()">
+          <span>⚡ تولید هش اختصاصی تانل (Generate Connection Hash)</span>
+        </button>
+
+        <!-- Generated Hash Display -->
+        <div class="hash-display-box" id="hash-box" style="display: none;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <strong style="color: #fff; font-size: 14px;">🔑 کد هش اختصاصی تانل (برای سرور ایران):</strong>
+            <button class="btn btn-secondary" style="padding: 6px 14px; font-size: 12px;" onclick="copyHash()">
+              📋 کپی کردن هش
+            </button>
+          </div>
+          <div class="hash-text" id="generated-hash-text"></div>
+          <div style="font-size: 12px; color: var(--text-muted);">
+            وارد پنل سرور ایران شوید، به تب «راه‌اندازی» بروید و این هش را در بخش «اتصال سریع» وارد کنید.
+          </div>
+        </div>
+      </div>
+
+      <!-- IRAN SETUP CARD -->
+      <div class="card" id="iran-setup-card">
+        <div class="card-title">📥 اتصال سریع با هش (مخصوص سرور ایران)</div>
+        <div class="card-desc">
+          کد هش تانلی که در سرور خارج تولید کرده‌اید را در کادر زیر وارد کنید و دکمه برقراری تانل را بزنید.
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">کد هش تانل نورا (NORA://...):</label>
+          <textarea class="form-input" id="paste-hash-input" rows="3" placeholder="NORA://eyJtb2RlIjoicmV2ZXJzZS..."></textarea>
+        </div>
+
+        <button class="btn btn-primary" onclick="connectWithHashAction()">
+          <span>🔗 اعمال و برقراری آنی تانل (Connect Tunnel)</span>
+        </button>
+      </div>
+
+      <!-- TUNNEL ACTIONS -->
+      <div class="card">
+        <div class="card-title">🎮 کنترل و عملیات تانل</div>
+        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+          <button class="btn btn-secondary" onclick="restartTunnelAction()">🔄 ری‌استارت تانل (Restart)</button>
+          <button class="btn btn-danger" onclick="stopTunnelAction()">⏹️ توقف سرویس تانل (Stop)</button>
+          <button class="btn btn-secondary" onclick="testPingAction()">📶 تست تاخیر و پینگ (Test Ping)</button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- TAB 2: PORT FORWARDING -->
+    <div id="tab-ports" class="tab-content">
+      <div class="card">
+        <div class="card-title">🔌 افزودن پورت فورواردینگ جدید</div>
+        <div class="card-desc">
+          شما می‌توانید پورت‌ها را مستقیماً از همینجا مدیریت کنید. وقتی پورتی اضافه می‌کنید، ترافیک ورودی به این پورت در سرور ایران، مستقیم به سرور خارج منتقل می‌شود.
+        </div>
+
+        <div class="form-row" style="align-items: flex-end;">
+          <div class="form-group" style="flex: 2; margin-bottom: 0;">
+            <label class="form-label">شماره پورت یا رِنج پورت‌ها:</label>
+            <input type="text" class="form-input" id="new-port-input" placeholder="مثال: 443 یا 8443=443 یا 10000-10050">
+          </div>
+          <button class="btn btn-primary" onclick="addPortAction()" style="height: 44px;">
+            <span>➕ افزودن پورت</span>
+          </button>
+        </div>
+
+        <!-- Preset Chips -->
+        <div style="margin-top: 14px;">
+          <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 6px;">کلیدهای سریع پورت‌های پرکاربرد Xray:</div>
+          <div class="chips-group">
+            <span class="chip" onclick="quickAddPort('443')">+ 443 (HTTPS)</span>
+            <span class="chip" onclick="quickAddPort('2053')">+ 2053 (Cloudflare)</span>
+            <span class="chip" onclick="quickAddPort('2083')">+ 2083 (Cloudflare)</span>
+            <span class="chip" onclick="quickAddPort('8080')">+ 8080 (HTTP Alt)</span>
+            <span class="chip" onclick="quickAddPort('8443')">+ 8443 (HTTPS Alt)</span>
+            <span class="chip" onclick="quickAddPort('2087')">+ 2087</span>
+            <span class="chip" onclick="quickAddPort('2096')">+ 2096</span>
+            <span class="chip" onclick="quickAddAllStandard()">⚡ افزودن تمام پورت‌های استاندارد</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Ports List Table -->
+      <div class="card">
+        <div class="card-title">📋 پورت‌های فعال تانل</div>
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>پورت ایران (Local Port)</th>
+                <th>پورت مقصد سرور خارج (Remote)</th>
+                <th>نوع فوروارد</th>
+                <th>وضعیت</th>
+                <th>عملیات</th>
+              </tr>
+            </thead>
+            <tbody id="ports-table-body">
+              <tr>
+                <td colspan="5" style="text-align: center; color: var(--text-muted);">در حال دریافت لیست پورت‌ها...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: LOGS -->
+    <div id="tab-logs" class="tab-content">
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <div class="card-title" style="margin-bottom: 0;">📜 لاگ زنده هسته بک‌هال (Live Core Logs)</div>
+          <button class="btn btn-secondary" style="padding: 6px 14px; font-size: 12px;" onclick="fetchLogs()">🔄 رفرش لاگ</button>
+        </div>
+        <div class="log-box" id="logs-container">در حال بارگذاری لاگ‌ها...</div>
+      </div>
+    </div>
+
+    <!-- TAB 4: SETTINGS -->
+    <div id="tab-settings" class="tab-content">
+      <div class="card">
+        <div class="card-title">🔐 امنیت و اطلاعات ورود به پنل</div>
+        <div class="card-desc">تغییر نام کاربری و رمز عبور وب پنل NORA TUNNEL:</div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">نام کاربری جدید:</label>
+            <input type="text" class="form-input" id="new-username-input" placeholder="admin">
+          </div>
+          <div class="form-group">
+            <label class="form-label">رمز عبور جدید:</label>
+            <input type="password" class="form-input" id="new-password-input" placeholder="••••••••">
+          </div>
+        </div>
+
+        <button class="btn btn-primary" onclick="updatePasswordAction()">
+          <span>💾 ذخیره تنظیمات امنیتی</span>
+        </button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">ℹ️ درباره NORA TUNNEL</div>
+        <div style="font-size: 13px; color: var(--text-muted); line-height: 1.8;">
+          این پنل به صورت اختصاصی برای مدیریت اتوماتیک و مدرن تانل‌های لایه ۴ مبتنی بر هسته پرسرعت <strong>Backhaul v0.7.2</strong> طراحی شده است.
+          <br>
+          مجهز به معماری دوگانه <strong>بک‌هال ریورس (Reverse)</strong> و <strong>بک‌هال دایرکت (Direct)</strong> با قابلیت استقرار مستقل و اتصال هش‌محور دوطرفه.
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script>
+    let selectedMode = 'reverse';
+    let currentPorts = [];
+
+    function showToast(msg, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.innerText = msg;
+      container.appendChild(toast);
+      setTimeout(() => toast.remove(), 4000);
+    }
+
+    function switchTab(tabName) {
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+      event.target.classList.add('active');
+      document.getElementById(`tab-${tabName}`).classList.add('active');
+
+      if (tabName === 'logs') fetchLogs();
+      if (tabName === 'ports') refreshStatus();
+    }
+
+    function selectMode(mode) {
+      selectedMode = mode;
+      document.getElementById('mode-reverse').classList.toggle('selected', mode === 'reverse');
+      document.getElementById('mode-direct').classList.toggle('selected', mode === 'direct');
+    }
+
+    async function refreshStatus() {
+      try {
+        const res = await fetch('/api/status');
+        const data = await res.json();
+        if (!data.success) return;
+
+        const obj = data.obj;
+        const st = obj.status || {};
+        const cfg = obj.config || {};
+
+        // Status Badge
+        const dot = document.getElementById('status-dot');
+        const stText = document.getElementById('status-text');
+        if (st.running) {
+          dot.className = 'dot online';
+          stText.innerText = 'متصل و پایدار';
+        } else {
+          dot.className = 'dot offline';
+          stText.innerText = 'متوقف / قطع';
+        }
+
+        // Role
+        const role = cfg.role || 'none';
+        const roleText = role === 'kharej' ? '🌍 سرور خارج (Foreign)' : role === 'iran' ? '🇮🇷 سرور ایران (Iran)' : 'آماده پیکربندی';
+        document.getElementById('server-role-text').innerText = roleText;
+
+        // Metrics
+        document.getElementById('metric-ping').innerText = st.last_ping_ms > 0 ? st.last_ping_ms : '--';
+        document.getElementById('metric-mode').innerText = (cfg.mode === 'direct' ? 'Backhaul Direct' : 'Backhaul Reverse');
+
+        // Ports
+        currentPorts = cfg.ports || [];
+        document.getElementById('metric-ports-count').innerText = currentPorts.length;
+
+        // Uptime
+        const sec = st.uptime_sec || 0;
+        const h = String(Math.floor(sec / 3600)).padStart(2, '0');
+        const m = String(Math.floor((sec % 3600) / 60)).padStart(2, '0');
+        const s = String(sec % 60).padStart(2, '0');
+        document.getElementById('metric-uptime').innerText = `${h}:${m}:${s}`;
+
+        // Render Table
+        renderPortsTable(currentPorts);
+
+        // Inputs default
+        if (cfg.iran_ip && !document.getElementById('iran-ip-input').value) {
+          document.getElementById('iran-ip-input').value = cfg.iran_ip;
+        }
+        if (cfg.connection_hash && !document.getElementById('generated-hash-text').innerText) {
+          document.getElementById('generated-hash-text').innerText = cfg.connection_hash;
+          document.getElementById('hash-box').style.display = 'flex';
+        }
+      } catch (err) {
+        console.error("Status error:", err);
+      }
+    }
+
+    function renderPortsTable(ports) {
+      const tbody = document.getElementById('ports-table-body');
+      if (!ports || ports.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">هیچ پورتی اضافه نشده است.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = ports.map(p => {
+        let local = p;
+        let remote = p;
+        if (p.includes('=')) {
+          const parts = p.split('=');
+          local = parts[0];
+          remote = parts[1];
+        }
+        return `
+          <tr>
+            <td><strong style="color: var(--neon-cyan)">${local}</strong></td>
+            <td><strong>${remote}</strong></td>
+            <td><span style="font-size: 11px; color: var(--text-muted);">${p.includes('-') ? 'بازه پورت‌ها (Range)' : 'تک پورت'}</span></td>
+            <td><span style="color: var(--success); font-size: 12px;">🟢 فعال در تانل</span></td>
+            <td>
+              <button class="btn btn-danger" style="padding: 4px 10px; font-size: 11px;" onclick="deletePortAction('${p}')">
+                🗑️ حذف
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    async function generateHashAction() {
+      const iranIP = document.getElementById('iran-ip-input').value.trim();
+      if (!iranIP) {
+        showToast('لطفاً آدرس IP سرور ایران را وارد کنید.', 'error');
+        return;
+      }
+
+      const transport = document.getElementById('transport-select').value;
+      const ctrlPort = parseInt(document.getElementById('ctrl-port-input').value) || 3080;
+      const initialPorts = document.getElementById('initial-ports-input').value.split(',').map(s => s.trim()).filter(Boolean);
+
+      try {
+        const res = await fetch('/api/tunnel/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            iran_ip: iranIP,
+            mode: selectedMode,
+            transport: transport,
+            control_port: ctrlPort,
+            ports: initialPorts
+          })
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          document.getElementById('generated-hash-text').innerText = data.obj.hash;
+          document.getElementById('hash-box').style.display = 'flex';
+          showToast('هش اتصال با موفقیت تولید شد و سرور خارج آماده اتصال است.', 'success');
+          refreshStatus();
+        } else {
+          showToast(data.msg || 'خطا در ایجاد تانل', 'error');
+        }
+      } catch (e) {
+        showToast('خطا در برقراری ارتباط با سرور: ' + e, 'error');
+      }
+    }
+
+    function copyHash() {
+      const txt = document.getElementById('generated-hash-text').innerText;
+      navigator.clipboard.writeText(txt).then(() => {
+        showToast('هش اتصال در کلیپ‌بورد کپی شد!', 'success');
+      });
+    }
+
+    async function connectWithHashAction() {
+      const hashStr = document.getElementById('paste-hash-input').value.trim();
+      if (!hashStr) {
+        showToast('لطفاً هش اتصال NORA را وارد کنید.', 'error');
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/tunnel/connect', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ hash: hashStr })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast('تانل در سرور ایران با موفقیت فعال و متصل شد!', 'success');
+          refreshStatus();
+        } else {
+          showToast(data.msg || 'خطا در اعمال هش تانل', 'error');
+        }
+      } catch (e) {
+        showToast('خطا در اعمال هش: ' + e, 'error');
+      }
+    }
+
+    async function restartTunnelAction() {
+      try {
+        const res = await fetch('/api/tunnel/restart', { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+          showToast('سرویس تانل با موفقیت ری‌استارت شد.', 'success');
+          refreshStatus();
+        } else {
+          showToast(data.msg || 'خطا در ری‌استارت', 'error');
+        }
+      } catch (e) {
+        showToast('خطا: ' + e, 'error');
+      }
+    }
+
+    async function stopTunnelAction() {
+      if (!confirm('آیا از توقف سرویس تانل اطمینان دارید؟')) return;
+      try {
+        const res = await fetch('/api/tunnel/stop', { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+          showToast('سرویس تانل متوقف شد.', 'info');
+          refreshStatus();
+        }
+      } catch (e) {
+        showToast('خطا: ' + e, 'error');
+      }
+    }
+
+    async function testPingAction() {
+      showToast('در حال سنجش پینگ و سلامت ارتباط...', 'info');
+      try {
+        const res = await fetch('/api/ping');
+        const data = await res.json();
+        if (data.success) {
+          showToast(`تاخیر ارتباط با سرور مقابل: ${data.obj.latency_ms} میلی‌ثانیه`, 'success');
+          refreshStatus();
+        } else {
+          showToast('پینگ برقرار نشد: ' + data.msg, 'error');
+        }
+      } catch (e) {
+        showToast('خطا در تست پینگ: ' + e, 'error');
+      }
+    }
+
+    async function addPortAction() {
+      const portVal = document.getElementById('new-port-input').value.trim();
+      if (!portVal) return;
+
+      try {
+        const res = await fetch('/api/ports/add', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ port: portVal })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast(`پورت ${portVal} با موفقیت به تانل اضافه شد.`, 'success');
+          document.getElementById('new-port-input').value = '';
+          refreshStatus();
+        } else {
+          showToast(data.msg || 'خطا در افزودن پورت', 'error');
+        }
+      } catch (e) {
+        showToast('خطا: ' + e, 'error');
+      }
+    }
+
+    function quickAddPort(port) {
+      document.getElementById('new-port-input').value = port;
+      addPortAction();
+    }
+
+    async function quickAddAllStandard() {
+      const ports = ['443', '2053', '2083', '8080', '8443', '2087', '2096'];
+      for (const p of ports) {
+        await fetch('/api/ports/add', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ port: p })
+        });
+      }
+      showToast('تمام پورت‌های استاندارد افزوده شدند.', 'success');
+      refreshStatus();
+    }
+
+    async function deletePortAction(port) {
+      if (!confirm(`آیا از حذف پورت ${port} اطمینان دارید؟`)) return;
+      try {
+        const res = await fetch('/api/ports/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ port: port })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast(`پورت ${port} حذف شد.`, 'info');
+          refreshStatus();
+        }
+      } catch (e) {
+        showToast('خطا: ' + e, 'error');
+      }
+    }
+
+    async function fetchLogs() {
+      try {
+        const res = await fetch('/api/logs');
+        const data = await res.json();
+        if (data.success) {
+          const container = document.getElementById('logs-container');
+          if (data.obj && data.obj.length > 0) {
+            container.innerHTML = data.obj.map(l => {
+              let cls = '';
+              if (l.includes('[ERROR]') || l.includes('FAIL')) cls = 'log-err';
+              else if (l.includes('[WARN]')) cls = 'log-warn';
+              else if (l.includes('[INFO]')) cls = 'log-info';
+              return `<div class="${cls}">${l}</div>`;
+            }).join('');
+            container.scrollTop = container.scrollHeight;
+          } else {
+            container.innerHTML = 'هنوز لاگی ثبت نشده است.';
+          }
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    async function updatePasswordAction() {
+      const u = document.getElementById('new-username-input').value.trim();
+      const p = document.getElementById('new-password-input').value.trim();
+      if (!u && !p) {
+        showToast('حداقل نام کاربری یا رمز عبور جدید را وارد کنید.', 'error');
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/settings/password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: u, password: p })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast('اطلاعات امنیتی با موفقیت بروزرسانی شد.', 'success');
+        } else {
+          showToast(data.msg || 'خطا در ذخیره', 'error');
+        }
+      } catch (e) {
+        showToast('خطا: ' + e, 'error');
+      }
+    }
+
+    // Init & Polling
+    refreshStatus();
+    setInterval(refreshStatus, 3000);
+  </script>
+</body>
+</html>

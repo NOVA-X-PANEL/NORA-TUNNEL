@@ -1,0 +1,57 @@
+name: Release NORA TUNNEL
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Extract Tag Version
+        id: get_version
+        run: |
+          echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Build linux/amd64
+        env:
+          CGO_ENABLED: 0
+          GOOS: linux
+          GOARCH: amd64
+        run: |
+          go build -ldflags="-s -w -X main.Version=${{ steps.get_version.outputs.VERSION }}" -o nora-tunnel ./cmd/nora-tunnel
+          tar -czf nora-tunnel-linux-amd64.tar.gz nora-tunnel
+          rm -f nora-tunnel
+
+      - name: Build linux/arm64
+        env:
+          CGO_ENABLED: 0
+          GOOS: linux
+          GOARCH: arm64
+        run: |
+          go build -ldflags="-s -w -X main.Version=${{ steps.get_version.outputs.VERSION }}" -o nora-tunnel ./cmd/nora-tunnel
+          tar -czf nora-tunnel-linux-arm64.tar.gz nora-tunnel
+          rm -f nora-tunnel
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: NORA TUNNEL ${{ steps.get_version.outputs.VERSION }}
+          draft: false
+          prerelease: false
+          files: |
+            nora-tunnel-linux-amd64.tar.gz
+            nora-tunnel-linux-arm64.tar.gz
+          generate_release_notes: true

@@ -1,0 +1,6 @@
+/nora-tunnel
+*.tar.gz
+*.log
+bin/
+backhaul_data/
+config.json
