@@ -176,14 +176,23 @@ EOF
 
 configure_credentials() {
     echo -e "${YELLOW}------------------------------------------------------------------${NC}"
-    echo -e "${CYAN}${BOLD}[+] تنظیم اطلاعات ورود به پنل وب NORA TUNNEL:${NC}"
+    echo -e "${CYAN}${BOLD}[+] Panel Credentials Setup / تنظیم اطلاعات ورود به پنل:${NC}"
 
     local input_user=""
     local input_pass=""
 
+    echo -ne "${YELLOW}Enter Admin Username [Default: admin]: ${NC}"
     if [ -c /dev/tty ]; then
-        read -rp "👤 نام کاربری جدید پنل را وارد کنید [پیش‌فرض: admin]: " input_user </dev/tty 2>/dev/null || read -rp "👤 نام کاربری جدید پنل را وارد کنید [پیش‌فرض: admin]: " input_user 2>/dev/null || true
-        read -rp "🔑 رمز عبور جدید پنل را وارد کنید [پیش‌فرض: admin]: " input_pass </dev/tty 2>/dev/null || read -rp "🔑 رمز عبور جدید پنل را وارد کنید [پیش‌فرض: admin]: " input_pass 2>/dev/null || true
+        read -r input_user </dev/tty 2>/dev/null || read -r input_user || true
+    else
+        read -r input_user 2>/dev/null || true
+    fi
+
+    echo -ne "${YELLOW}Enter Admin Password [Default: admin]: ${NC}"
+    if [ -c /dev/tty ]; then
+        read -r input_pass </dev/tty 2>/dev/null || read -r input_pass || true
+    else
+        read -r input_pass 2>/dev/null || true
     fi
 
     ADMIN_USER="${input_user:-admin}"
@@ -191,7 +200,7 @@ configure_credentials() {
 
     $INSTALL_DIR/nora-tunnel -c $CONFIG_DIR/config.json -set-user "$ADMIN_USER" -set-pass "$ADMIN_PASS" >/dev/null 2>&1 || true
     systemctl restart nora-tunnel
-    echo -e "${GREEN}[✔] نام کاربری ($ADMIN_USER) و رمز عبور با موفقیت اعمال شدند.${NC}"
+    echo -e "${GREEN}[✔] Username: ${ADMIN_USER} | Password set successfully.${NC}"
 }
 
 get_public_ip() {
