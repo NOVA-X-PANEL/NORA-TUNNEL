@@ -14,7 +14,7 @@ type TunnelConfig struct {
 	Enabled        bool     `json:"enabled"`
 	Mode           string   `json:"mode"`           // "reverse" or "direct"
 	Role           string   `json:"role"`           // "kharej" or "iran"
-	Transport      string   `json:"transport"`      // "tcpmux", "tcp", "ws", "wss", "wsmux", "wssmux"
+	Transport      string   `json:"transport"`      // "udp+tcp", "tcp", "tcpmux", "ws", "wsmux"
 	ControlPort    int      `json:"control_port"`   // default 3080
 	IranIP         string   `json:"iran_ip"`
 	KharejIP       string   `json:"kharej_ip"`
@@ -63,7 +63,7 @@ func DefaultConfig() *AppConfig {
 			Enabled:        false,
 			Mode:           "reverse",
 			Role:           "none",
-			Transport:      "tcpmux",
+			Transport:      "udp+tcp",
 			ControlPort:    3080,
 			Token:          randomHex(12),
 			Ports:          []string{},
@@ -109,7 +109,7 @@ func LoadConfig(customPath string) (*AppConfig, error) {
 		cfg.Tunnel.ControlPort = 3080
 	}
 	if cfg.Tunnel.Transport == "" {
-		cfg.Tunnel.Transport = "tcpmux"
+		cfg.Tunnel.Transport = "udp+tcp"
 	}
 	if cfg.Tunnel.Ports == nil {
 		cfg.Tunnel.Ports = []string{}

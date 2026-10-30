@@ -196,8 +196,12 @@ func (m *Manager) GenerateConfig(cfg config.TunnelConfig) (string, error) {
 	if cfg.ControlPort == 0 {
 		cfg.ControlPort = 3080
 	}
-	if cfg.Transport == "" {
-		cfg.Transport = "tcpmux"
+	rawTransport := strings.ToLower(strings.TrimSpace(cfg.Transport))
+	actualTransport := rawTransport
+	if rawTransport == "udp+tcp" || rawTransport == "tcp+udp" || rawTransport == "udp_tcp" || rawTransport == "tcp_udp" || rawTransport == "tcp" {
+		actualTransport = "tcp"
+	} else if actualTransport == "" {
+		actualTransport = "tcp"
 	}
 
 	// Format port list
@@ -241,7 +245,7 @@ func (m *Manager) GenerateConfig(cfg config.TunnelConfig) (string, error) {
 	if isServer {
 		sb.WriteString("[server]\n")
 		sb.WriteString(fmt.Sprintf("bind_addr = \"0.0.0.0:%d\"\n", cfg.ControlPort))
-		sb.WriteString(fmt.Sprintf("transport = \"%s\"\n", cfg.Transport))
+		sb.WriteString(fmt.Sprintf("transport = \"%s\"\n", actualTransport))
 		sb.WriteString("accept_udp = true\n")
 		sb.WriteString(fmt.Sprintf("token = \"%s\"\n", cfg.Token))
 		sb.WriteString("keepalive_period = 75\n")
@@ -268,7 +272,7 @@ func (m *Manager) GenerateConfig(cfg config.TunnelConfig) (string, error) {
 
 		sb.WriteString("[client]\n")
 		sb.WriteString(fmt.Sprintf("remote_addr = \"%s:%d\"\n", remoteIP, cfg.ControlPort))
-		sb.WriteString(fmt.Sprintf("transport = \"%s\"\n", cfg.Transport))
+		sb.WriteString(fmt.Sprintf("transport = \"%s\"\n", actualTransport))
 		sb.WriteString(fmt.Sprintf("token = \"%s\"\n", cfg.Token))
 		sb.WriteString("connection_pool = 10\n")
 		sb.WriteString("keepalive_period = 75\n")
@@ -552,6 +556,7 @@ func EnsureFirewallRules(cfg config.TunnelConfig) {
 
 		// Ensure allowed at very top of INPUT chain
 		_ = exec.Command("iptables", "-I", "INPUT", "1", "-p", "tcp", "--dport", cleanPort, "-j", "ACCEPT").Run()
+		_ = exec.Command("iptables", "-I", "INPUT", "1", "-p", "udp", "--dport", cleanPort, "-j", "ACCEPT").Run()
 		_ = exec.Command("ufw", "allow", cleanPort).Run()
 
 		// Clean up rogue UDP 443 flood rules if TCP tunnel
@@ -639,5 +644,10 @@ func SetupAccountingChains(cfg config.TunnelConfig) {
 		_ = exec.Command("iptables", "-A", "NORA_ACCT_OUT", "-p", "tcp", "--sport", cleanPort).Run()
 		_ = exec.Command("iptables", "-A", "NORA_ACCT_IN", "-p", "tcp", "--sport", cleanPort).Run()
 		_ = exec.Command("iptables", "-A", "NORA_ACCT_OUT", "-p", "tcp", "--dport", cleanPort).Run()
+
+		_ = exec.Command("iptables", "-A", "NORA_ACCT_IN", "-p", "udp", "--dport", cleanPort).Run()
+		_ = exec.Command("iptables", "-A", "NORA_ACCT_OUT", "-p", "udp", "--sport", cleanPort).Run()
+		_ = exec.Command("iptables", "-A", "NORA_ACCT_IN", "-p", "udp", "--sport", cleanPort).Run()
+		_ = exec.Command("iptables", "-A", "NORA_ACCT_OUT", "-p", "udp", "--dport", cleanPort).Run()
 	}
 }

@@ -294,7 +294,7 @@ func (s *Server) handleCreateTunnel(w http.ResponseWriter, r *http.Request) {
 		req.Mode = "reverse"
 	}
 	if req.Transport == "" {
-		req.Transport = "tcpmux"
+		req.Transport = "udp+tcp"
 	}
 	if req.ControlPort <= 0 {
 		req.ControlPort = 3080

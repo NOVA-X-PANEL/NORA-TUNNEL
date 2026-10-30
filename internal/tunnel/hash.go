@@ -29,7 +29,7 @@ func GenerateHash(t config.TunnelConfig) (string, error) {
 		t.Mode = "reverse"
 	}
 	if t.Transport == "" {
-		t.Transport = "tcpmux"
+		t.Transport = "udp+tcp"
 	}
 	if t.ControlPort == 0 {
 		t.ControlPort = 3080
@@ -81,7 +81,7 @@ func ParseHash(hashStr string) (*ConnectionPayload, error) {
 		payload.ControlPort = 3080
 	}
 	if payload.Transport == "" {
-		payload.Transport = "tcpmux"
+		payload.Transport = "udp+tcp"
 	}
 
 	return &payload, nil

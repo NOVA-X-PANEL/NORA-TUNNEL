@@ -1229,10 +1229,11 @@
           <div class="form-group">
             <label class="form-label" data-i18n="transport_label">پروتکل ترنسپورت (Transport):</label>
             <select class="form-select" id="transport-select">
-              <option value="tcpmux" selected data-i18n="opt_tcpmux">tcpmux (مالتی‌پلکس فوق‌سریع - پیش‌فرض)</option>
-              <option value="ws" data-i18n="opt_ws">WebSocket (WS - سبک)</option>
-              <option value="tcp" data-i18n="opt_tcp">TCP ساده (سازگارترین)</option>
-              <option value="wsmux">WS Mux</option>
+              <option value="udp+tcp" selected data-i18n="opt_udp_tcp">UDP + TCP همزمان (پشتیبانی وایرگارد و VLESS / پیشنهاد اصلی)</option>
+              <option value="tcpmux" data-i18n="opt_tcpmux">tcpmux (مالتی‌پلکس فوق‌سریع - فقط TCP)</option>
+              <option value="ws" data-i18n="opt_ws">WebSocket (WS - فقط TCP)</option>
+              <option value="tcp" data-i18n="opt_tcp">TCP ساده (دوگانه TCP+UDP)</option>
+              <option value="wsmux">WS Mux (فقط TCP)</option>
             </select>
           </div>
 
@@ -1426,9 +1427,10 @@
         metric_speed_rx_label: "⬇️ دانلود",
         metric_speed_tx_label: "⬆️ آپلود",
         metric_unit_ports: "پورت",
-        opt_tcpmux: "tcpmux (مالتی‌پلکس فوق‌سریع - پیش‌فرض)",
-        opt_ws: "WebSocket (WS - سبک)",
-        opt_tcp: "TCP ساده (سازگارترین)",
+        opt_udp_tcp: "UDP + TCP همزمان (پشتیبانی وایرگارد و VLESS / پیشنهاد اصلی)",
+        opt_tcpmux: "tcpmux (مالتی‌پلکس فوق‌سریع - فقط TCP)",
+        opt_ws: "WebSocket (WS سبک - فقط TCP)",
+        opt_tcp: "TCP ساده (دوگانه TCP+UDP)",
         logs_loading: "در حال بارگذاری لاگ‌ها...",
         ports_loading: "در حال دریافت لیست پورت‌ها...",
         drawer_version_loading: "نسخه در حال بارگذاری...",
@@ -1625,9 +1627,10 @@
         metric_speed_rx_label: "⬇️ Download",
         metric_speed_tx_label: "⬆️ Upload",
         metric_unit_ports: "Ports",
-        opt_tcpmux: "tcpmux (Ultra-fast Multiplex - Default)",
-        opt_ws: "WebSocket (WS - Lightweight)",
-        opt_tcp: "Plain TCP (Most Compatible)",
+        opt_udp_tcp: "UDP + TCP Dual (Simultaneous WireGuard & VLESS Support)",
+        opt_tcpmux: "tcpmux (Ultra-fast Multiplex - TCP only)",
+        opt_ws: "WebSocket (Lightweight - TCP only)",
+        opt_tcp: "Plain TCP (Dual Compatible)",
         logs_loading: "Loading real-time logs...",
         ports_loading: "Fetching active ports list...",
         drawer_version_loading: "Loading version...",
@@ -2089,7 +2092,11 @@
         // Mode and Transport
         document.getElementById('metric-mode').innerText = (cfg.mode === 'direct' ? 'Backhaul Direct' : 'Backhaul Reverse');
         if (document.getElementById('metric-transport-info')) {
-          document.getElementById('metric-transport-info').innerText = t('metric_transport_prefix') + (cfg.transport || 'tcpmux');
+          let trName = cfg.transport || 'udp+tcp';
+          if (trName === 'udp+tcp' || trName === 'tcp+udp' || trName === 'tcp') {
+            trName = 'UDP + TCP (همزمان)';
+          }
+          document.getElementById('metric-transport-info').innerText = t('metric_transport_prefix') + trName;
         }
 
         // Ports
