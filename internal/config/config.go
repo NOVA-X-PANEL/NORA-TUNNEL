@@ -170,3 +170,22 @@ func (m *Manager) UpdateAuth(username, password string) error {
 	}
 	return m.appCfg.Save()
 }
+
+func (m *Manager) ResetTunnel() error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.appCfg.Tunnel = TunnelConfig{
+		Enabled:        false,
+		Mode:           "reverse",
+		Role:           "none",
+		Transport:      "tcpmux",
+		ControlPort:    3080,
+		Token:          randomHex(12),
+		Ports:          []string{"443", "2053", "2083", "8080", "8443", "2087", "2096"},
+		PeerSyncSecret: randomHex(16),
+		IranIP:         "",
+		KharejIP:       "",
+		ConnectionHash: "",
+	}
+	return m.appCfg.Save()
+}

@@ -65,6 +65,8 @@ func (s *Server) registerRoutes() {
 	s.mux.HandleFunc("/api/tunnel/connect", s.handleConnectTunnel)
 	s.mux.HandleFunc("/api/tunnel/restart", s.handleRestartTunnel)
 	s.mux.HandleFunc("/api/tunnel/stop", s.handleStopTunnel)
+	s.mux.HandleFunc("/api/tunnel/remove", s.handleRemoveTunnel)
+	s.mux.HandleFunc("/api/tunnel/reset", s.handleRemoveTunnel)
 	s.mux.HandleFunc("/api/ports/add", s.handleAddPort)
 	s.mux.HandleFunc("/api/ports/delete", s.handleDeletePort)
 	s.mux.HandleFunc("/api/ping", s.handlePing)
@@ -300,6 +302,7 @@ func (s *Server) handleCreateTunnel(w http.ResponseWriter, r *http.Request) {
 
 	// Update configuration
 	cfg := s.cfgMgr.Get()
+	cfg.Enabled = true
 	cfg.Role = "kharej"
 	cfg.Mode = req.Mode
 	cfg.Transport = req.Transport
@@ -371,6 +374,7 @@ func (s *Server) handleConnectTunnel(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cfg := s.cfgMgr.Get()
+	cfg.Enabled = true
 	cfg.Role = "iran"
 	cfg.Mode = payload.Mode
 	cfg.Transport = payload.Transport
@@ -424,6 +428,25 @@ func (s *Server) handleStopTunnel(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.jsonResponse(w, true, "Tunnel stopped successfully", nil)
+}
+
+func (s *Server) handleRemoveTunnel(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	if err := s.bhMgr.Reset(); err != nil {
+		s.jsonResponse(w, false, "خطا در توقف و ریست هسته تانل: "+err.Error(), nil)
+		return
+	}
+
+	if err := s.cfgMgr.ResetTunnel(); err != nil {
+		s.jsonResponse(w, false, "خطا در پاک‌سازی کانفیگ تانل: "+err.Error(), nil)
+		return
+	}
+
+	s.jsonResponse(w, true, "تانل با موفقیت حذف شد و کلیه تنظیمات به حالت اولیه بازگشت.", nil)
 }
 
 func (s *Server) handleAddPort(w http.ResponseWriter, r *http.Request) {

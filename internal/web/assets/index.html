@@ -901,6 +901,13 @@
         <span class="drawer-item-icon">🔄</span>
         <span>ری‌استارت سرویس تانل</span>
       </a>
+      <a class="drawer-item" style="color: #ff5577;" onclick="removeTunnelAction(); closeDrawer();">
+        <span class="drawer-item-icon">🗑️</span>
+        <div style="flex: 1;">
+          <div style="font-weight: 700;">حذف کامل تانل (Remove Tunnel)</div>
+          <div style="font-size: 11px; color: #ff8899;">حذف کانفیگ فعلی برای ساخت تانل نو</div>
+        </div>
+      </a>
       <a class="drawer-item" onclick="testPingAction(); closeDrawer();">
         <span class="drawer-item-icon">📡</span>
         <span>سنجش دستی پینگ سرورها</span>
@@ -1075,6 +1082,28 @@
 
     <!-- TAB 1: SETUP -->
     <div id="tab-setup" class="tab-content active">
+
+      <!-- ACTIVE TUNNEL ACTIONS (IF CONFIGURED) -->
+      <div class="card" id="active-tunnel-card" style="display: none; border: 1px solid rgba(255, 0, 85, 0.4); background: rgba(255, 0, 85, 0.05); margin-bottom: 22px; box-shadow: 0 0 25px rgba(255,0,85,0.12);">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+          <div>
+            <div style="font-weight: 800; font-size: 16px; color: #fff; display: flex; align-items: center; gap: 8px;">
+              <span style="color: var(--neon-cyan); font-size: 18px;">⚡</span> وضعیت تانل سرور: <span id="active-tunnel-role-badge" class="status-badge connected">سرور خارج (Kharej)</span>
+            </div>
+            <div style="font-size: 13px; color: var(--text-muted); margin-top: 5px; line-height: 1.5;">
+              تانل روی این سرور پیکربندی و فعال شده است. برای تغییر کلی سرورها، ریست تنظیمات یا اتصال به یک سرور دیگر، از دکمه حذف تانل استفاده کنید.
+            </div>
+          </div>
+          <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+            <button class="btn btn-secondary" onclick="restartTunnelAction()" style="font-size: 13px; padding: 9px 16px;">
+              🔄 ری‌استارت تانل
+            </button>
+            <button class="btn btn-danger" onclick="removeTunnelAction()" style="font-size: 13px; padding: 9px 16px; background: rgba(255, 0, 85, 0.25); border-color: var(--danger); color: #fff; font-weight: 700;">
+              🗑️ حذف کامل تانل (Remove Tunnel)
+            </button>
+          </div>
+        </div>
+      </div>
 
       <!-- KHOREJ SETUP CARD -->
       <div class="card" id="kharej-setup-card">
@@ -1421,6 +1450,21 @@
         const roleText = role === 'kharej' ? '🌍 سرور خارج (Foreign)' : role === 'iran' ? '🇮🇷 سرور ایران (Iran)' : 'آماده پیکربندی';
         document.getElementById('server-role-text').innerText = roleText;
 
+        // Active Tunnel Card
+        const activeCard = document.getElementById('active-tunnel-card');
+        const roleBadge = document.getElementById('active-tunnel-role-badge');
+        if (activeCard) {
+          if (role !== 'none') {
+            activeCard.style.display = 'block';
+            if (roleBadge) {
+              roleBadge.innerText = (role === 'kharej' ? '🌍 سرور خارج (Kharej)' : '🇮🇷 سرور ایران (Iran)') + (st.running ? ' - در حال کار' : ' - متوقف');
+              roleBadge.className = 'status-badge ' + (st.running ? 'connected' : 'disconnected');
+            }
+          } else {
+            activeCard.style.display = 'none';
+          }
+        }
+
         // Ping
         const pingEl = document.getElementById('metric-ping');
         const pingPill = document.getElementById('ping-status-pill');
@@ -1715,6 +1759,31 @@
         }
       } catch (e) {
         showToast('خطا: ' + e, 'error');
+      }
+    }
+
+    async function removeTunnelAction() {
+      if (!confirm('آیا از حذف کامل تانل و ریست تنظیمات اطمینان دارید؟\nبا این کار کانفیگ تانل پاک می‌شود و می‌توانید تانل جدید بسازید.')) {
+        return;
+      }
+
+      showToast('در حال حذف تانل و پاک‌سازی کامل تنظیمات...', 'info');
+      try {
+        const res = await authFetch('/api/tunnel/remove', { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+          showToast(data.msg || 'تانل با موفقیت حذف شد.', 'success');
+          document.getElementById('iran-ip-input').value = '';
+          document.getElementById('paste-hash-input').value = '';
+          const hashEl = document.getElementById('generated-hash-text');
+          if (hashEl) hashEl.value = '';
+          document.getElementById('hash-box').style.display = 'none';
+          refreshStatus();
+        } else {
+          showToast(data.msg || 'خطا در حذف تانل', 'error');
+        }
+      } catch (e) {
+        showToast('خطا در ارتباط: ' + e, 'error');
       }
     }
 

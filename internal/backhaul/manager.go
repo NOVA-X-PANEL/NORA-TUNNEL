@@ -389,6 +389,23 @@ func (m *Manager) Stop() error {
 	return nil
 }
 
+func (m *Manager) Reset() error {
+	_ = m.Stop()
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	_ = os.Remove(m.configFile)
+
+	m.status.Running = false
+	m.status.Role = "none"
+	m.status.LastPingMs = 0
+	m.status.LastError = ""
+	m.status.Ports = nil
+	m.status.StartedAt = time.Time{}
+	m.appendLog("[NORA] Tunnel configuration removed and reset.")
+	return nil
+}
+
 func (m *Manager) Restart(cfg config.TunnelConfig) error {
 	_ = m.Stop()
 	time.Sleep(500 * time.Millisecond)

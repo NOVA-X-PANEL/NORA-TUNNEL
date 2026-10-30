@@ -28,6 +28,7 @@ func main() {
 	showVer := flag.Bool("v", false, "Show version")
 	setUser := flag.String("set-user", "", "Set admin username and exit")
 	setPass := flag.String("set-pass", "", "Set admin password and exit")
+	resetTunnel := flag.Bool("reset-tunnel", false, "Reset and remove all tunnel configurations")
 	flag.Parse()
 
 	cleanVer := "v" + strings.TrimPrefix(Version, "v")
@@ -56,6 +57,17 @@ func main() {
 		return
 	}
 
+	if *resetTunnel {
+		cfgMgr := config.NewManager(appCfg)
+		bhMgr := backhaul.NewManager()
+		_ = bhMgr.Reset()
+		if err := cfgMgr.ResetTunnel(); err != nil {
+			log.Fatalf("[NORA-FATAL] Failed to reset tunnel config: %v", err)
+		}
+		fmt.Println("[✔] Tunnel completely removed and reset.")
+		return
+	}
+
 	log.Printf("[NORA] Starting NORA TUNNEL %s...", cleanVer)
 
 	if *portFlag > 0 {
@@ -80,10 +92,17 @@ func main() {
 
 	// Auto-start tunnel if configured
 	tunCfg := cfgMgr.Get()
-	if tunCfg.Enabled && tunCfg.Role != "none" {
-		log.Printf("[NORA] Auto-starting existing tunnel (%s / %s)...", tunCfg.Role, tunCfg.Mode)
-		if err := bhMgr.Start(tunCfg); err != nil {
-			log.Printf("[NORA-ERROR] Failed to auto-start tunnel: %v", err)
+	if tunCfg.Role != "" && tunCfg.Role != "none" {
+		tunCfg.Enabled = true
+		_ = cfgMgr.Update(func(c *config.TunnelConfig) { c.Enabled = true })
+		st := bhMgr.GetStatus()
+		if !st.Running {
+			log.Printf("[NORA] Auto-starting existing tunnel (%s / %s)...", tunCfg.Role, tunCfg.Mode)
+			if err := bhMgr.Start(tunCfg); err != nil {
+				log.Printf("[NORA-ERROR] Failed to auto-start tunnel: %v", err)
+			}
+		} else {
+			log.Printf("[NORA] Tunnel is already actively running (%s / %s).", tunCfg.Role, tunCfg.Mode)
 		}
 	}
 
@@ -111,11 +130,10 @@ func main() {
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 	sig := <-sigChan
 
-	log.Printf("[NORA] Received signal %v, shutting down gracefully...", sig)
+	log.Printf("[NORA] Received signal %v, shutting down web server...", sig)
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer shutdownCancel()
 
 	_ = httpServer.Shutdown(shutdownCtx)
-	_ = bhMgr.Stop()
-	log.Printf("[NORA] Shutdown complete.")
+	log.Printf("[NORA] Web server stopped cleanly (tunnel services remain running in background).")
 }

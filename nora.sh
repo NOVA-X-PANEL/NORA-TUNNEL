@@ -87,6 +87,19 @@ update_panel() {
     bash <(curl -fsSL https://raw.githubusercontent.com/NOVA-X-PANEL/NORA-TUNNEL/main/install.sh)
 }
 
+reset_tunnel() {
+    echo -e "${RED}${BOLD}[!] WARNING: This will stop Backhaul and completely remove all active tunnel settings.${NC}"
+    read -rp "Are you sure? Type 'yes' to confirm: " confirm
+    if [ "$confirm" == "yes" ]; then
+        echo -e "${YELLOW}[+] Resetting tunnel...${NC}"
+        ${INSTALL_DIR}/nora-tunnel -c ${CONFIG_DIR}/config.json -reset-tunnel 2>/dev/null || true
+        systemctl restart ${SERVICE_NAME} 2>/dev/null || true
+        echo -e "${GREEN}[✔] Tunnel completely removed and reset. You can now configure a fresh tunnel.${NC}"
+    else
+        echo -e "${CYAN}[*] Reset cancelled.${NC}"
+    fi
+}
+
 reinstall_panel() {
     echo -ne "${YELLOW}[!] Are you sure you want to reinstall NORA TUNNEL? [y/N]: ${NC}"
     read -r confirm
@@ -144,12 +157,13 @@ show_menu() {
         echo -e "  ${GREEN}4)${NC} Restart Service"
         echo -e "  ${GREEN}5)${NC} View Live Logs"
         echo -e "  ${GREEN}6)${NC} Change Admin Password"
-        echo -e "  ${CYAN}7)${NC} Update NORA TUNNEL"
-        echo -e "  ${YELLOW}8)${NC} Reinstall Panel"
-        echo -e "  ${RED}9)${NC} Completely Uninstall"
+        echo -e "  ${RED}7)${NC} Reset & Remove Tunnel (Clear active tunnel)"
+        echo -e "  ${CYAN}8)${NC} Update NORA TUNNEL"
+        echo -e "  ${YELLOW}9)${NC} Reinstall Panel"
+        echo -e "  ${RED}10)${NC} Completely Uninstall"
         echo -e "  ${MAGENTA}0)${NC} Exit Menu"
         echo -e "${CYAN}------------------------------------------------------------------${NC}"
-        echo -ne "Please select an option [0-9]: "
+        echo -ne "Please select an option [0-10]: "
         read -r choice
 
         case "$choice" in
@@ -159,9 +173,10 @@ show_menu() {
             4) service_restart; sleep 1 ;;
             5) service_logs ;;
             6) change_credentials; echo -ne "\nPress Enter to return to menu..."; read -r ;;
-            7) update_panel; break ;;
-            8) reinstall_panel; break ;;
-            9) uninstall_panel; break ;;
+            7) reset_tunnel; echo -ne "\nPress Enter to return to menu..."; read -r ;;
+            8) update_panel; break ;;
+            9) reinstall_panel; break ;;
+            10) uninstall_panel; break ;;
             0|q|exit) echo -e "\n${CYAN}Exiting menu.${NC}"; exit 0 ;;
             *) echo -e "${RED}Invalid option!${NC}"; sleep 1 ;;
         esac
@@ -178,6 +193,7 @@ main() {
         restart) service_restart ;;
         log|logs) service_logs ;;
         passwd|password) change_credentials ;;
+        reset|remove-tunnel) reset_tunnel ;;
         update) update_panel ;;
         reinstall) reinstall_panel ;;
         uninstall) uninstall_panel ;;
