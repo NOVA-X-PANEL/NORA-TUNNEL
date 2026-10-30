@@ -25,6 +25,8 @@ func main() {
 	configPath := flag.String("c", "", "Path to config file (default: /etc/nora-tunnel/config.json or ./config.json)")
 	portFlag := flag.Int("p", 0, "Web UI Port (override config)")
 	showVer := flag.Bool("v", false, "Show version")
+	setUser := flag.String("set-user", "", "Set admin username and exit")
+	setPass := flag.String("set-pass", "", "Set admin password and exit")
 	flag.Parse()
 
 	if *showVer {
@@ -32,13 +34,27 @@ func main() {
 		return
 	}
 
-	log.Printf("[NORA] Starting NORA TUNNEL v%s...", Version)
-
 	// Load configuration
 	appCfg, err := config.LoadConfig(*configPath)
 	if err != nil {
 		log.Fatalf("[NORA-FATAL] Failed to load config: %v", err)
 	}
+
+	if *setUser != "" || *setPass != "" {
+		if *setUser != "" {
+			appCfg.Username = *setUser
+		}
+		if *setPass != "" {
+			appCfg.Password = *setPass
+		}
+		if err := appCfg.Save(); err != nil {
+			log.Fatalf("[NORA-FATAL] Failed to update credentials: %v", err)
+		}
+		fmt.Printf("Admin credentials updated successfully (user: %s).\n", appCfg.Username)
+		return
+	}
+
+	log.Printf("[NORA] Starting NORA TUNNEL v%s...", Version)
 
 	if *portFlag > 0 {
 		appCfg.WebPort = *portFlag

@@ -152,13 +152,39 @@ case "$1" in
     log|logs)
         journalctl -u nora-tunnel -f -n 50
         ;;
+    passwd|password)
+        read -rp "نام کاربری جدید: " u
+        read -rp "رمز عبور جدید: " p
+        /usr/local/bin/nora-tunnel -c /etc/nora-tunnel/config.json -set-user "$u" -set-pass "$p"
+        systemctl restart nora-tunnel
+        ;;
     *)
         echo "NORA TUNNEL CLI"
-        echo "Usage: nora {start|stop|restart|status|logs}"
+        echo "Usage: nora {start|stop|restart|status|logs|passwd}"
         ;;
 esac
 EOF
     chmod +x "$INSTALL_DIR/nora"
+}
+
+configure_credentials() {
+    echo -e "${YELLOW}------------------------------------------------------------------${NC}"
+    echo -e "${CYAN}${BOLD}[+] تنظیم اطلاعات ورود به پنل وب NORA TUNNEL:${NC}"
+
+    local input_user=""
+    local input_pass=""
+
+    if [ -c /dev/tty ]; then
+        read -rp "👤 نام کاربری جدید پنل را وارد کنید [پیش‌فرض: admin]: " input_user </dev/tty 2>/dev/null || read -rp "👤 نام کاربری جدید پنل را وارد کنید [پیش‌فرض: admin]: " input_user 2>/dev/null || true
+        read -rp "🔑 رمز عبور جدید پنل را وارد کنید [پیش‌فرض: admin]: " input_pass </dev/tty 2>/dev/null || read -rp "🔑 رمز عبور جدید پنل را وارد کنید [پیش‌فرض: admin]: " input_pass 2>/dev/null || true
+    fi
+
+    ADMIN_USER="${input_user:-admin}"
+    ADMIN_PASS="${input_pass:-admin}"
+
+    $INSTALL_DIR/nora-tunnel -c $CONFIG_DIR/config.json -set-user "$ADMIN_USER" -set-pass "$ADMIN_PASS" >/dev/null 2>&1 || true
+    systemctl restart nora-tunnel
+    echo -e "${GREEN}[✔] نام کاربری ($ADMIN_USER) و رمز عبور با موفقیت اعمال شدند.${NC}"
 }
 
 get_public_ip() {
@@ -173,14 +199,15 @@ main() {
     install_binary
     setup_systemd
     setup_cli
+    configure_credentials
     get_public_ip
 
     echo -e "${GREEN}==================================================================${NC}"
     echo -e "${GREEN}${BOLD}✔ نصب NORA TUNNEL با موفقیت انجام شد!${NC}"
     echo -e "${GREEN}==================================================================${NC}"
     echo -e "${CYAN}🌐 نشانی پنل وب:${NC}  ${BOLD}http://${SERVER_IP}:7777/${NC}"
-    echo -e "${CYAN}👤 نام کاربری:${NC}   ${BOLD}admin${NC}"
-    echo -e "${CYAN}🔑 رمز عبور:${NC}     ${BOLD}admin${NC}"
+    echo -e "${CYAN}👤 نام کاربری:${NC}   ${BOLD}${ADMIN_USER}${NC}"
+    echo -e "${CYAN}🔑 رمز عبور:${NC}     ${BOLD}${ADMIN_PASS}${NC}"
     echo -e "${MAGENTA}------------------------------------------------------------------${NC}"
     echo -e "${YELLOW}راهنمای اتصال سریع:${NC}"
     echo -e " ۱. در سرور خارج وارد پنل شده و آی‌پی سرور ایران را وارد کنید."

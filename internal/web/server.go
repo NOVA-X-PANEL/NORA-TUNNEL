@@ -1,7 +1,10 @@
 package web
 
 import (
+	"crypto/sha256"
 	"embed"
+	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/fs"
@@ -44,6 +47,9 @@ func NewServer(cfgMgr *config.Manager, bhMgr *backhaul.Manager, version string) 
 
 func (s *Server) registerRoutes() {
 	// API routes
+	s.mux.HandleFunc("/api/auth/login", s.handleLogin)
+	s.mux.HandleFunc("/api/auth/logout", s.handleLogout)
+	s.mux.HandleFunc("/api/auth/check", s.handleAuthCheck)
 	s.mux.HandleFunc("/api/status", s.handleStatus)
 	s.mux.HandleFunc("/api/tunnel/create", s.handleCreateTunnel)
 	s.mux.HandleFunc("/api/tunnel/connect", s.handleConnectTunnel)
@@ -56,11 +62,99 @@ func (s *Server) registerRoutes() {
 	s.mux.HandleFunc("/api/settings/password", s.handleUpdatePassword)
 
 	// Static web files
-	subFS, err := fs.Sub(webFS, "web")
+	subFS, err := fs.Sub(webFS, "assets")
 	if err == nil {
 		fileServer := http.FileServer(http.FS(subFS))
 		s.mux.Handle("/", fileServer)
 	}
+}
+
+func (s *Server) generateSessionToken() string {
+	appCfg := s.cfgMgr.GetAppConfig()
+	data := fmt.Sprintf("%s:%s:%s", appCfg.Username, appCfg.Password, appCfg.SecretKey)
+	hash := sha256.Sum256([]byte(data))
+	return hex.EncodeToString(hash[:])
+}
+
+func (s *Server) isAuthenticated(r *http.Request) bool {
+	expectedToken := s.generateSessionToken()
+
+	// 1. Check Cookie
+	if c, err := r.Cookie("nora_session"); err == nil && c.Value == expectedToken {
+		return true
+	}
+
+	// 2. Check Authorization Header
+	authHeader := r.Header.Get("Authorization")
+	if strings.HasPrefix(authHeader, "Bearer ") {
+		token := strings.TrimPrefix(authHeader, "Bearer ")
+		if token == expectedToken {
+			return true
+		}
+	} else if strings.HasPrefix(authHeader, "Basic ") {
+		raw, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(authHeader, "Basic "))
+		if err == nil {
+			parts := strings.SplitN(string(raw), ":", 2)
+			appCfg := s.cfgMgr.GetAppConfig()
+			if len(parts) == 2 && parts[0] == appCfg.Username && parts[1] == appCfg.Password {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		s.jsonResponse(w, false, "Invalid JSON", nil)
+		return
+	}
+
+	appCfg := s.cfgMgr.GetAppConfig()
+	if req.Username != appCfg.Username || req.Password != appCfg.Password {
+		s.jsonResponse(w, false, "نام کاربری یا رمز عبور اشتباه است", nil)
+		return
+	}
+
+	token := s.generateSessionToken()
+	http.SetCookie(w, &http.Cookie{
+		Name:     "nora_session",
+		Value:    token,
+		Path:     "/",
+		HttpOnly: true,
+		MaxAge:   86400 * 30, // 30 days
+		SameSite: http.SameSiteLaxMode,
+	})
+
+	s.jsonResponse(w, true, "ورود موفقیت‌آمیز بود", map[string]string{
+		"token": token,
+	})
+}
+
+func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     "nora_session",
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+	})
+	s.jsonResponse(w, true, "خروج انجام شد", nil)
+}
+
+func (s *Server) handleAuthCheck(w http.ResponseWriter, r *http.Request) {
+	s.jsonResponse(w, s.isAuthenticated(r), "", nil)
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -72,6 +166,15 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodOptions {
 		w.WriteHeader(http.StatusOK)
 		return
+	}
+
+	// Protect all /api/ endpoints except /api/auth/login and /api/auth/check
+	if strings.HasPrefix(r.URL.Path, "/api/") && r.URL.Path != "/api/auth/login" && r.URL.Path != "/api/auth/check" {
+		if !s.isAuthenticated(r) {
+			w.WriteHeader(http.StatusUnauthorized)
+			s.jsonResponse(w, false, "Unauthorized", nil)
+			return
+		}
 	}
 
 	s.mux.ServeHTTP(w, r)
