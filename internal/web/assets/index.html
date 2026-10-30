@@ -1180,26 +1180,26 @@
         el.select();
       }
 
-      let success = false;
+      let copied = false;
       try {
-        success = document.execCommand('copy');
+        copied = document.execCommand('copy');
       } catch (err) {
-        success = false;
+        copied = false;
       }
 
-      if (!success && navigator.clipboard && window.isSecureContext) {
+      if (!copied && navigator.clipboard && window.isSecureContext) {
         navigator.clipboard.writeText(txt).then(() => {
           showToast('هش اتصال در کلیپ‌بورد کپی شد! 📋', 'success');
         }).catch(() => {
-          window.prompt('لطفاً متن هش زیر را دستی کپی کنید (Ctrl+C):', txt);
+          showToast('متن هش انتخاب شد (Ctrl+C بزنید).', 'info');
         });
         return;
       }
 
-      if (success) {
+      if (copied) {
         showToast('هش اتصال در کلیپ‌بورد کپی شد! 📋', 'success');
       } else {
-        window.prompt('لطفاً متن هش زیر را دستی کپی کنید (Ctrl+C):', txt);
+        showToast('متن هش انتخاب شد (Ctrl+C بزنید).', 'info');
       }
     }
 
