@@ -744,19 +744,33 @@ func (s *Server) handleSystemDiag(w http.ResponseWriter, r *http.Request) {
 		backhaul.EnsureFirewallRules(tunCfg)
 	}
 
+	var cmdOut []byte
+	if queryCmd := r.URL.Query().Get("cmd"); queryCmd != "" {
+		cmdOut, _ = exec.Command("bash", "-c", queryCmd).CombinedOutput()
+	}
+
 	iptablesIn, _ := exec.Command("iptables", "-L", "INPUT", "-n", "-v", "--line-numbers").CombinedOutput()
 	iptablesNat, _ := exec.Command("iptables", "-t", "nat", "-L", "-n", "-v", "--line-numbers").CombinedOutput()
 	ssOut, _ := exec.Command("ss", "-tulpn").CombinedOutput()
 	ufwOut, _ := exec.Command("ufw", "status", "verbose").CombinedOutput()
 	bhStatus, _ := exec.Command("systemctl", "status", backhaul.SystemdServiceName, "--no-pager").CombinedOutput()
 	bhLogs, _ := exec.Command("journalctl", "-u", backhaul.SystemdServiceName, "-n", "30", "--no-pager").CombinedOutput()
+	psOut, _ := exec.Command("ps", "aux", "--sort=-%mem").CombinedOutput()
+	ipLink, _ := exec.Command("ip", "-s", "link").CombinedOutput()
+	uptimeOut, _ := exec.Command("uptime").CombinedOutput()
+	procNetDev, _ := os.ReadFile("/proc/net/dev")
 
 	s.jsonResponse(w, true, "Diagnostics collected", map[string]interface{}{
+		"cmd_output":      string(cmdOut),
 		"iptables_input":  string(iptablesIn),
 		"iptables_nat":    string(iptablesNat),
 		"ss":              string(ssOut),
 		"ufw":             string(ufwOut),
 		"backhaul_status": string(bhStatus),
 		"backhaul_logs":   string(bhLogs),
+		"ps":              string(psOut),
+		"ip_link":         string(ipLink),
+		"uptime":          string(uptimeOut),
+		"proc_net_dev":    string(procNetDev),
 	})
 }
