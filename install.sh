@@ -19,6 +19,7 @@ INSTALL_DIR="/usr/local/bin"
 CONFIG_DIR="/etc/nora-tunnel"
 SERVICE_FILE="/etc/systemd/system/nora-tunnel.service"
 GITHUB_REPO="NOVA-X-PANEL/NORA-TUNNEL"
+NORA_MIRROR=""
 
 print_banner() {
     clear
@@ -77,6 +78,11 @@ install_binary() {
     if [ -f "./nora-tunnel" ]; then
         cp ./nora-tunnel "$INSTALL_DIR/nora-tunnel"
         chmod +x "$INSTALL_DIR/nora-tunnel"
+    elif [ -n "$NORA_MIRROR" ]; then
+        echo -e "${CYAN}[*] در حال دریافت باینری نورا از سرور (${NORA_MIRROR})...${NC}"
+        if curl -fsSL "http://${NORA_MIRROR}/download/nora-tunnel-linux-${ARCH}" -o "$INSTALL_DIR/nora-tunnel"; then
+            chmod +x "$INSTALL_DIR/nora-tunnel"
+        fi
     else
         # Download from GitHub Release
         local LATEST_URL="https://github.com/${GITHUB_REPO}/releases/latest/download/nora-tunnel-linux-${ARCH}.tar.gz"
@@ -85,21 +91,22 @@ install_binary() {
             tar -xzf /tmp/nora-tunnel.tar.gz -C "$INSTALL_DIR"
             chmod +x "$INSTALL_DIR/nora-tunnel"
             rm -f /tmp/nora-tunnel.tar.gz
-        else
-            echo -e "${YELLOW}[!] باینری آماده یافت نشد؛ در حال دانلود نسخه محلی...${NC}"
-            # Fallback
         fi
     fi
 
     # Download backhaul binary if not exists
     if ! command -v backhaul &>/dev/null && [ ! -f "$INSTALL_DIR/backhaul" ]; then
         echo -e "${YELLOW}[+] در حال نصب هسته Backhaul v0.7.2...${NC}"
-        local BH_URL="https://github.com/Musixal/Backhaul/releases/download/v0.7.2/backhaul_linux_${ARCH}.tar.gz"
-        if curl -fsSL "$BH_URL" -o /tmp/backhaul.tar.gz; then
-            tar -xzf /tmp/backhaul.tar.gz -C /tmp
-            mv /tmp/backhaul "$INSTALL_DIR/backhaul"
+        if [ -n "$NORA_MIRROR" ] && curl -fsSL "http://${NORA_MIRROR}/download/backhaul" -o "$INSTALL_DIR/backhaul" 2>/dev/null; then
             chmod +x "$INSTALL_DIR/backhaul"
-            rm -f /tmp/backhaul.tar.gz
+        else
+            local BH_URL="https://github.com/Musixal/Backhaul/releases/download/v0.7.2/backhaul_linux_${ARCH}.tar.gz"
+            if curl -fsSL "$BH_URL" -o /tmp/backhaul.tar.gz; then
+                tar -xzf /tmp/backhaul.tar.gz -C /tmp
+                mv /tmp/backhaul "$INSTALL_DIR/backhaul"
+                chmod +x "$INSTALL_DIR/backhaul"
+                rm -f /tmp/backhaul.tar.gz
+            fi
         fi
     fi
 }

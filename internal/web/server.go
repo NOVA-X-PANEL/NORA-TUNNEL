@@ -10,6 +10,8 @@ import (
 	"io/fs"
 	"net"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -46,6 +48,10 @@ func NewServer(cfgMgr *config.Manager, bhMgr *backhaul.Manager, version string) 
 }
 
 func (s *Server) registerRoutes() {
+	// Public installation endpoints
+	s.mux.HandleFunc("/install.sh", s.handleInstallScript)
+	s.mux.HandleFunc("/download/", s.handleDownload)
+
 	// API routes
 	s.mux.HandleFunc("/api/auth/login", s.handleLogin)
 	s.mux.HandleFunc("/api/auth/logout", s.handleLogout)
@@ -66,6 +72,47 @@ func (s *Server) registerRoutes() {
 	if err == nil {
 		fileServer := http.FileServer(http.FS(subFS))
 		s.mux.Handle("/", fileServer)
+	}
+}
+
+func (s *Server) handleInstallScript(w http.ResponseWriter, r *http.Request) {
+	data, err := fs.ReadFile(webFS, "assets/install.sh")
+	if err != nil {
+		http.Error(w, "install.sh not found", http.StatusNotFound)
+		return
+	}
+
+	host := r.Host
+	if host == "" {
+		host = "91.107.165.105:7777"
+	}
+
+	content := strings.Replace(string(data), `NORA_MIRROR=""`, fmt.Sprintf(`NORA_MIRROR="%s"`, host), 1)
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Write([]byte(content))
+}
+
+func (s *Server) handleDownload(w http.ResponseWriter, r *http.Request) {
+	filename := filepath.Base(r.URL.Path)
+	switch filename {
+	case "nora-tunnel-linux-amd64", "nora-tunnel":
+		exePath, err := os.Executable()
+		if err == nil {
+			http.ServeFile(w, r, exePath)
+			return
+		}
+		http.ServeFile(w, r, "/usr/local/bin/nora-tunnel")
+	case "backhaul", "backhaul-linux-amd64":
+		candidates := []string{"/usr/local/bin/backhaul", "/opt/nora-tunnel/bin/backhaul", "./backhaul"}
+		for _, c := range candidates {
+			if fi, err := os.Stat(c); err == nil && !fi.IsDir() {
+				http.ServeFile(w, r, c)
+				return
+			}
+		}
+		http.NotFound(w, r)
+	default:
+		http.NotFound(w, r)
 	}
 }
 
