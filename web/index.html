@@ -923,12 +923,15 @@
       setTimeout(() => toast.remove(), 4000);
     }
 
-    function switchTab(tabName) {
+    function switchTab(tabName, el) {
       document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
       document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
 
-      event.target.classList.add('active');
-      document.getElementById(`tab-${tabName}`).classList.add('active');
+      const targetBtn = el || (typeof event !== 'undefined' && event && event.target ? event.target.closest('.tab-btn') : null) || document.querySelector(`button[onclick*="'${tabName}'"]`);
+      if (targetBtn) targetBtn.classList.add('active');
+
+      const content = document.getElementById(`tab-${tabName}`);
+      if (content) content.classList.add('active');
 
       if (tabName === 'logs') fetchLogs();
       if (tabName === 'ports') refreshStatus();
