@@ -1159,8 +1159,9 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label">پورت‌های اولیه جهت فوروارد (جداشده با کاما):</label>
-          <input type="text" class="form-input" id="initial-ports-input" value="443, 2053, 2083, 8080, 8443, 2087, 2096">
+          <label class="form-label">پورت‌های مورد نظر جهت فوروارد (جداشده با کاما):</label>
+          <input type="text" class="form-input" id="initial-ports-input" placeholder="مثال: 443, 2053, 8080 یا رِنج 10000-10050">
+          <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">پورت‌های مورد نیاز پنل یا اینباند خود را وارد کنید (بدون پورت پیش‌فرض).</div>
         </div>
 
         <button class="btn btn-primary" onclick="generateHashAction()">
@@ -1232,21 +1233,6 @@
           <button class="btn btn-primary" onclick="addPortAction()" style="height: 44px;">
             <span>➕ افزودن پورت</span>
           </button>
-        </div>
-
-        <!-- Preset Chips -->
-        <div style="margin-top: 14px;">
-          <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 6px;">کلیدهای سریع پورت‌های پرکاربرد Xray:</div>
-          <div class="chips-group">
-            <span class="chip" onclick="quickAddPort('443')">+ 443 (HTTPS)</span>
-            <span class="chip" onclick="quickAddPort('2053')">+ 2053 (Cloudflare)</span>
-            <span class="chip" onclick="quickAddPort('2083')">+ 2083 (Cloudflare)</span>
-            <span class="chip" onclick="quickAddPort('8080')">+ 8080 (HTTP Alt)</span>
-            <span class="chip" onclick="quickAddPort('8443')">+ 8443 (HTTPS Alt)</span>
-            <span class="chip" onclick="quickAddPort('2087')">+ 2087</span>
-            <span class="chip" onclick="quickAddPort('2096')">+ 2096</span>
-            <span class="chip" onclick="quickAddAllStandard()">⚡ افزودن تمام پورت‌های استاندارد</span>
-          </div>
         </div>
       </div>
 
@@ -1619,7 +1605,17 @@
 
       const transport = document.getElementById('transport-select').value;
       const ctrlPort = parseInt(document.getElementById('ctrl-port-input').value) || 3080;
-      const initialPorts = document.getElementById('initial-ports-input').value.split(',').map(s => s.trim()).filter(Boolean);
+      const portsRaw = document.getElementById('initial-ports-input').value.trim();
+      if (!portsRaw) {
+        showToast('لطفاً پورت‌های مورد نظر برای تانل را وارد کنید (مثال: 443, 2053).', 'error');
+        document.getElementById('initial-ports-input').focus();
+        return;
+      }
+      const initialPorts = portsRaw.split(',').map(s => s.trim()).filter(Boolean);
+      if (initialPorts.length === 0) {
+        showToast('لطفاً حداقل یک پورت معتبر وارد کنید.', 'error');
+        return;
+      }
 
       try {
         const res = await authFetch('/api/tunnel/create', {

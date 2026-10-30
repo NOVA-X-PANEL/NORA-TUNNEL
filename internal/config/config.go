@@ -66,7 +66,7 @@ func DefaultConfig() *AppConfig {
 			Transport:      "tcpmux",
 			ControlPort:    3080,
 			Token:          randomHex(12),
-			Ports:          []string{"443", "2053", "2083", "8080", "8443", "2087", "2096"},
+			Ports:          []string{},
 			PeerSyncSecret: randomHex(16),
 		},
 	}
@@ -111,8 +111,8 @@ func LoadConfig(customPath string) (*AppConfig, error) {
 	if cfg.Tunnel.Transport == "" {
 		cfg.Tunnel.Transport = "tcpmux"
 	}
-	if len(cfg.Tunnel.Ports) == 0 {
-		cfg.Tunnel.Ports = []string{"443", "2053", "2083", "8080", "8443", "2087", "2096"}
+	if cfg.Tunnel.Ports == nil {
+		cfg.Tunnel.Ports = []string{}
 	}
 
 	GlobalConfig = cfg
@@ -181,7 +181,7 @@ func (m *Manager) ResetTunnel() error {
 		Transport:      "tcpmux",
 		ControlPort:    3080,
 		Token:          randomHex(12),
-		Ports:          []string{"443", "2053", "2083", "8080", "8443", "2087", "2096"},
+		Ports:          []string{},
 		PeerSyncSecret: randomHex(16),
 		IranIP:         "",
 		KharejIP:       "",
