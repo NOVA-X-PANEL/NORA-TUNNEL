@@ -1196,6 +1196,30 @@
           آی‌پی سرور ایران و حالت تانل را مشخص کنید. سپس دکمه تولید هش را بزنید و کد ایجاد شده را در پنل سرور ایران پیست کنید.
         </div>
 
+        <!-- Core Select -->
+        <label class="form-label" style="font-weight: 600;">⚡ انتخاب هسته تانل (Tunnel Engine Core):</label>
+        <div class="mode-cards" style="margin-bottom: 16px;">
+          <div class="mode-card selected" id="core-card-backhaul" onclick="selectCore('backhaul')">
+            <div class="mode-card-header">
+              <span class="mode-name">🚀 بک‌هال (Backhaul Core)</span>
+              <span class="mode-tag" style="background: rgba(0,245,212,0.15); color: var(--neon-cyan); border-color: rgba(0,245,212,0.4);">پیش‌فرض / پرسرعت</span>
+            </div>
+            <div class="mode-desc">
+              پروتکل ترنسپورت مستقیم Backhaul با حداکثر پهنای باند و پینگ پایین دیتاسنتر.
+            </div>
+          </div>
+
+          <div class="mode-card" id="core-card-shadow" onclick="selectCore('shadow')">
+            <div class="mode-card-header">
+              <span class="mode-name" style="color: #c77dff;">🛡️ نورا شدو (Nora Shadow Core)</span>
+              <span class="mode-tag" style="background: rgba(157,78,221,0.25); color: #c77dff; border-color: rgba(157,78,221,0.5);">استتار SSH / اینترنت ملی</span>
+            </div>
+            <div class="mode-desc">
+              استتار ۱۰۰٪ ترافیک در قالب نشست‌های امنیتی لینوکس SSH (مشابه معماری باقر، کاملاً مستقل و رایگان).
+            </div>
+          </div>
+        </div>
+
         <!-- Mode Select -->
         <label class="form-label" data-i18n="engine_mode_label">انتخاب حالت هسته بک‌هال (Engine Mode):</label>
         <div class="mode-cards">
@@ -1214,8 +1238,8 @@
               <span class="mode-name" data-i18n="mode_direct_name">➡️ بک‌هال دایرکت (Direct)</span>
               <span class="mode-tag" data-i18n="mode_direct_tag">ارتباط مستقیم</span>
             </div>
-            <div class="mode-desc">
-              <span data-i18n="mode_direct_desc">سرور ایران کلاینت است و به سرور خارج متصل می‌شود. مناسب برای سرورهایی که پورت ورودی ایران بسته است.</span>
+            <div class="mode-desc" data-i18n="mode_direct_desc">
+              سرور ایران کلاینت است و به سرور خارج متصل می‌شود. مناسب برای سرورهایی که پورت ورودی ایران بسته است.
             </div>
           </div>
         </div>
@@ -1226,7 +1250,7 @@
             <input type="text" class="form-input" id="iran-ip-input" placeholder="مثال: 85.9.106.159" data-i18n-ph="iran_ip_ph">
           </div>
 
-          <div class="form-group">
+          <div class="form-group" id="transport-form-group">
             <label class="form-label" data-i18n="transport_label">پروتکل ترنسپورت (Transport):</label>
             <select class="form-select" id="transport-select">
               <option value="udp+tcp" selected data-i18n="opt_udp_tcp">UDP + TCP همزمان (پشتیبانی وایرگارد و VLESS / پیشنهاد اصلی)</option>
@@ -1299,6 +1323,7 @@
           <button class="btn btn-secondary" onclick="restartTunnelAction()" data-i18n="btn_restart_tunnel">🔄 ری‌استارت تانل (Restart)</button>
           <button class="btn btn-danger" onclick="stopTunnelAction()" data-i18n="btn_stop_tunnel">⏹️ توقف سرویس تانل (Stop)</button>
           <button class="btn btn-secondary" onclick="testPingAction()" data-i18n="btn_test_ping">📶 تست تاخیر و پینگ (Test Ping)</button>
+          <button class="btn btn-secondary" id="btn-toggle-core" onclick="toggleActiveCoreAction()" style="border-color: #9d4edd; color: #c77dff;">🛡️ تغییر هسته (Switch Core)</button>
         </div>
       </div>
 
@@ -1873,7 +1898,23 @@
     }
 
     let selectedMode = 'reverse';
+    let selectedCore = 'backhaul';
+    let currentCore = 'backhaul';
     let currentPorts = [];
+
+    function selectCore(core) {
+      selectedCore = core;
+      const bh = document.getElementById('core-card-backhaul');
+      const sh = document.getElementById('core-card-shadow');
+      if (bh) bh.classList.toggle('selected', core === 'backhaul');
+      if (sh) sh.classList.toggle('selected', core === 'shadow');
+
+      const trGroup = document.getElementById('transport-form-group');
+      if (trGroup) {
+        trGroup.style.opacity = core === 'shadow' ? '0.4' : '1';
+        trGroup.style.pointerEvents = core === 'shadow' ? 'none' : 'auto';
+      }
+    }
 
     function showToast(msg, type = 'info') {
       const container = document.getElementById('toast-container');
@@ -2090,13 +2131,42 @@
         }
 
         // Mode and Transport
-        document.getElementById('metric-mode').innerText = (cfg.mode === 'direct' ? 'Backhaul Direct' : 'Backhaul Reverse');
-        if (document.getElementById('metric-transport-info')) {
-          let trName = cfg.transport || 'udp+tcp';
-          if (trName === 'udp+tcp' || trName === 'tcp+udp' || trName === 'tcp') {
-            trName = 'UDP + TCP (همزمان)';
+        currentCore = cfg.core || 'backhaul';
+        const isShadow = currentCore === 'shadow';
+        const modeEl = document.getElementById('metric-mode');
+        if (modeEl) {
+          if (isShadow) {
+            modeEl.innerText = 'Nora Shadow (SSH)';
+            modeEl.style.color = '#c77dff';
+          } else {
+            modeEl.innerText = (cfg.mode === 'direct' ? 'Backhaul Direct' : 'Backhaul Reverse');
+            modeEl.style.color = '';
           }
-          document.getElementById('metric-transport-info').innerText = t('metric_transport_prefix') + trName;
+        }
+
+        const btnToggleCore = document.getElementById('btn-toggle-core');
+        if (btnToggleCore) {
+          if (isShadow) {
+            btnToggleCore.innerHTML = '🚀 سوییچ به بک‌هال (Switch to Backhaul)';
+            btnToggleCore.style.borderColor = 'var(--neon-cyan)';
+            btnToggleCore.style.color = 'var(--neon-cyan)';
+          } else {
+            btnToggleCore.innerHTML = '🛡️ سوییچ به نورا شدو (Switch to Shadow)';
+            btnToggleCore.style.borderColor = '#9d4edd';
+            btnToggleCore.style.color = '#c77dff';
+          }
+        }
+
+        if (document.getElementById('metric-transport-info')) {
+          if (isShadow) {
+            document.getElementById('metric-transport-info').innerText = 'استتار امنیتی SSH (Port ' + (cfg.control_port || 3080) + ')';
+          } else {
+            let trName = cfg.transport || 'udp+tcp';
+            if (trName === 'udp+tcp' || trName === 'tcp+udp' || trName === 'tcp') {
+              trName = 'UDP + TCP (همزمان)';
+            }
+            document.getElementById('metric-transport-info').innerText = t('metric_transport_prefix') + trName;
+          }
         }
 
         // Ports
@@ -2180,6 +2250,7 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            core: selectedCore,
             iran_ip: iranIP,
             mode: selectedMode,
             transport: transport,
@@ -2206,6 +2277,30 @@
         }
       } catch (e) {
         showToast('خطا در برقراری ارتباط با سرور: ' + e, 'error');
+      }
+    }
+
+    async function toggleActiveCoreAction() {
+      const targetCore = currentCore === 'shadow' ? 'backhaul' : 'shadow';
+      const coreName = targetCore === 'shadow' ? 'نورا شدو (Nora Shadow / SSH)' : 'بک‌هال (Backhaul)';
+      if (!confirm(`آیا مطمئن هستید که می‌خواهید هسته فعال تانل را به «${coreName}» تغییر دهید؟`)) {
+        return;
+      }
+      try {
+        const res = await authFetch('/api/tunnel/switch-core', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ core: targetCore })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast(`هسته تانل با موفقیت به ${coreName} تغییر یافت`, 'success');
+          refreshStatus();
+        } else {
+          showToast(data.msg || 'خطا در تغییر هسته تانل', 'error');
+        }
+      } catch (e) {
+        showToast('خطا در ارتباط با سرور: ' + e, 'error');
       }
     }
 

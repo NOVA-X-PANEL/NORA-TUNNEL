@@ -12,6 +12,7 @@ import (
 
 type TunnelConfig struct {
 	Enabled        bool     `json:"enabled"`
+	Core           string   `json:"core"`           // "backhaul" or "shadow" (default "backhaul")
 	Mode           string   `json:"mode"`           // "reverse" or "direct"
 	Role           string   `json:"role"`           // "kharej" or "iran"
 	Transport      string   `json:"transport"`      // "udp+tcp", "tcp", "tcpmux", "ws", "wsmux"
@@ -61,6 +62,7 @@ func DefaultConfig() *AppConfig {
 		SecretKey: randomHex(16),
 		Tunnel: TunnelConfig{
 			Enabled:        false,
+			Core:           "backhaul",
 			Mode:           "reverse",
 			Role:           "none",
 			Transport:      "udp+tcp",
@@ -110,6 +112,9 @@ func LoadConfig(customPath string) (*AppConfig, error) {
 	}
 	if cfg.Tunnel.Transport == "" {
 		cfg.Tunnel.Transport = "udp+tcp"
+	}
+	if cfg.Tunnel.Core == "" {
+		cfg.Tunnel.Core = "backhaul"
 	}
 	if cfg.Tunnel.Ports == nil {
 		cfg.Tunnel.Ports = []string{}

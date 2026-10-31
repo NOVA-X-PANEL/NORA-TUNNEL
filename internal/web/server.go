@@ -19,6 +19,7 @@ import (
 
 	"github.com/NOVA-X-PANEL/NORA-TUNNEL/internal/backhaul"
 	"github.com/NOVA-X-PANEL/NORA-TUNNEL/internal/config"
+	"github.com/NOVA-X-PANEL/NORA-TUNNEL/internal/shadow"
 	"github.com/NOVA-X-PANEL/NORA-TUNNEL/internal/system"
 	"github.com/NOVA-X-PANEL/NORA-TUNNEL/internal/traffic"
 	"github.com/NOVA-X-PANEL/NORA-TUNNEL/internal/tunnel"
@@ -28,10 +29,11 @@ import (
 var webFS embed.FS
 
 type Server struct {
-	cfgMgr  *config.Manager
-	bhMgr   *backhaul.Manager
-	mux     *http.ServeMux
-	version string
+	cfgMgr    *config.Manager
+	bhMgr     *backhaul.Manager
+	shadowMgr *shadow.Manager
+	mux       *http.ServeMux
+	version   string
 }
 
 type ApiResponse struct {
@@ -40,12 +42,13 @@ type ApiResponse struct {
 	Obj     interface{} `json:"obj,omitempty"`
 }
 
-func NewServer(cfgMgr *config.Manager, bhMgr *backhaul.Manager, version string) *Server {
+func NewServer(cfgMgr *config.Manager, bhMgr *backhaul.Manager, shadowMgr *shadow.Manager, version string) *Server {
 	s := &Server{
-		cfgMgr:  cfgMgr,
-		bhMgr:   bhMgr,
-		mux:     http.NewServeMux(),
-		version: version,
+		cfgMgr:    cfgMgr,
+		bhMgr:     bhMgr,
+		shadowMgr: shadowMgr,
+		mux:       http.NewServeMux(),
+		version:   version,
 	}
 	s.registerRoutes()
 	go s.startBackgroundPing()
@@ -70,6 +73,7 @@ func (s *Server) registerRoutes() {
 	s.mux.HandleFunc("/api/tunnel/reset", s.handleRemoveTunnel)
 	s.mux.HandleFunc("/api/ports/add", s.handleAddPort)
 	s.mux.HandleFunc("/api/ports/delete", s.handleDeletePort)
+	s.mux.HandleFunc("/api/tunnel/switch-core", s.handleSwitchCore)
 	s.mux.HandleFunc("/api/ping", s.handlePing)
 	s.mux.HandleFunc("/api/logs", s.handleLogs)
 	s.mux.HandleFunc("/api/settings/password", s.handleUpdatePassword)
@@ -255,7 +259,12 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cfg := s.cfgMgr.Get()
-	status := s.bhMgr.GetStatus()
+	var status interface{}
+	if cfg.Core == "shadow" {
+		status = s.shadowMgr.GetStatus()
+	} else {
+		status = s.bhMgr.GetStatus()
+	}
 
 	data := map[string]interface{}{
 		"version": s.version,
@@ -273,6 +282,7 @@ func (s *Server) handleCreateTunnel(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
+		Core        string   `json:"core"`
 		IranIP      string   `json:"iran_ip"`
 		Mode        string   `json:"mode"`
 		Transport   string   `json:"transport"`
@@ -290,6 +300,9 @@ func (s *Server) handleCreateTunnel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if req.Core == "" {
+		req.Core = "backhaul"
+	}
 	if req.Mode == "" {
 		req.Mode = "reverse"
 	}
@@ -307,6 +320,7 @@ func (s *Server) handleCreateTunnel(w http.ResponseWriter, r *http.Request) {
 	cfg := s.cfgMgr.Get()
 	cfg.Enabled = true
 	cfg.Role = "kharej"
+	cfg.Core = req.Core
 	cfg.Mode = req.Mode
 	cfg.Transport = req.Transport
 	cfg.ControlPort = req.ControlPort
@@ -345,9 +359,15 @@ func (s *Server) handleCreateTunnel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Start or restart Backhaul on Kharej in background
+	// Start or restart Tunnel on Kharej in background
 	go func() {
-		_ = s.bhMgr.Restart(cfg)
+		if cfg.Core == "shadow" {
+			_ = s.bhMgr.Stop()
+			_ = s.shadowMgr.Restart(cfg)
+		} else {
+			_ = s.shadowMgr.Stop()
+			_ = s.bhMgr.Restart(cfg)
+		}
 	}()
 
 	s.jsonResponse(w, true, "Tunnel generated successfully", map[string]interface{}{
@@ -379,6 +399,7 @@ func (s *Server) handleConnectTunnel(w http.ResponseWriter, r *http.Request) {
 	cfg := s.cfgMgr.Get()
 	cfg.Enabled = true
 	cfg.Role = "iran"
+	cfg.Core = payload.Core
 	cfg.Mode = payload.Mode
 	cfg.Transport = payload.Transport
 	cfg.ControlPort = payload.ControlPort
@@ -396,9 +417,15 @@ func (s *Server) handleConnectTunnel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Start Backhaul on Iran asynchronously
+	// Start Tunnel on Iran asynchronously
 	go func() {
-		_ = s.bhMgr.Restart(cfg)
+		if cfg.Core == "shadow" {
+			_ = s.bhMgr.Stop()
+			_ = s.shadowMgr.Restart(cfg)
+		} else {
+			_ = s.shadowMgr.Stop()
+			_ = s.bhMgr.Restart(cfg)
+		}
 		backhaul.EnsureFirewallRules(cfg)
 	}()
 
@@ -412,7 +439,15 @@ func (s *Server) handleRestartTunnel(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cfg := s.cfgMgr.Get()
-	if err := s.bhMgr.Restart(cfg); err != nil {
+	var err error
+	if cfg.Core == "shadow" {
+		_ = s.bhMgr.Stop()
+		err = s.shadowMgr.Restart(cfg)
+	} else {
+		_ = s.shadowMgr.Stop()
+		err = s.bhMgr.Restart(cfg)
+	}
+	if err != nil {
 		s.jsonResponse(w, false, "Failed to restart: "+err.Error(), nil)
 		return
 	}
@@ -427,6 +462,7 @@ func (s *Server) handleStopTunnel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	_ = s.shadowMgr.Stop()
 	if err := s.bhMgr.Stop(); err != nil {
 		s.jsonResponse(w, false, "Failed to stop: "+err.Error(), nil)
 		return
@@ -441,17 +477,18 @@ func (s *Server) handleRemoveTunnel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	_ = s.shadowMgr.Stop()
 	if err := s.bhMgr.Reset(); err != nil {
 		s.jsonResponse(w, false, "خطا در توقف و ریست هسته تانل: "+err.Error(), nil)
 		return
 	}
 
 	if err := s.cfgMgr.ResetTunnel(); err != nil {
-		s.jsonResponse(w, false, "خطا در پاک‌سازی کانفیگ تانل: "+err.Error(), nil)
+		s.jsonResponse(w, false, "Failed to reset config: "+err.Error(), nil)
 		return
 	}
 
-	s.jsonResponse(w, true, "تانل با موفقیت حذف شد و کلیه تنظیمات به حالت اولیه بازگشت.", nil)
+	s.jsonResponse(w, true, "Tunnel removed successfully", nil)
 }
 
 func (s *Server) handleAddPort(w http.ResponseWriter, r *http.Request) {
@@ -501,8 +538,12 @@ func (s *Server) handleAddPort(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Reload Backhaul with new port list
-	_ = s.bhMgr.UpdatePorts(cfg)
+	// Reload Core with new port list
+	if cfg.Core == "shadow" {
+		_ = s.shadowMgr.Restart(cfg)
+	} else {
+		_ = s.bhMgr.UpdatePorts(cfg)
+	}
 
 	// Ensure port is allowed in firewall & clean NAT conflicts
 	backhaul.EnsureFirewallRules(cfg)
@@ -558,10 +599,68 @@ func (s *Server) handleDeletePort(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_ = s.bhMgr.UpdatePorts(cfg)
+	if cfg.Core == "shadow" {
+		_ = s.shadowMgr.Restart(cfg)
+	} else {
+		_ = s.bhMgr.UpdatePorts(cfg)
+	}
 
 	s.jsonResponse(w, true, "Port removed successfully", map[string]interface{}{
 		"ports": cfg.Ports,
+	})
+}
+
+func (s *Server) handleSwitchCore(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req struct {
+		Core string `json:"core"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		s.jsonResponse(w, false, "Invalid JSON: "+err.Error(), nil)
+		return
+	}
+
+	if req.Core != "backhaul" && req.Core != "shadow" {
+		s.jsonResponse(w, false, "Invalid core. Must be 'backhaul' or 'shadow'", nil)
+		return
+	}
+
+	cfg := s.cfgMgr.Get()
+	cfg.Core = req.Core
+
+	// Update hash if Kharej
+	if cfg.Role == "kharej" {
+		if h, err := tunnel.GenerateHash(cfg); err == nil {
+			cfg.ConnectionHash = h
+		}
+	}
+
+	if err := s.cfgMgr.Update(func(c *config.TunnelConfig) {
+		*c = cfg
+	}); err != nil {
+		s.jsonResponse(w, false, "Failed to update config: "+err.Error(), nil)
+		return
+	}
+
+	// Switch active running core if tunnel is enabled
+	if cfg.Enabled && cfg.Role != "none" && cfg.Role != "" {
+		if cfg.Core == "shadow" {
+			_ = s.bhMgr.Stop()
+			_ = s.shadowMgr.Restart(cfg)
+		} else {
+			_ = s.shadowMgr.Stop()
+			_ = s.bhMgr.Restart(cfg)
+		}
+		backhaul.EnsureFirewallRules(cfg)
+	}
+
+	s.jsonResponse(w, true, fmt.Sprintf("Switched to %s core successfully", cfg.Core), map[string]interface{}{
+		"core": cfg.Core,
+		"hash": cfg.ConnectionHash,
 	})
 }
 

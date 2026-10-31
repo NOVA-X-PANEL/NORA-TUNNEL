@@ -16,11 +16,12 @@ import (
 
 	"github.com/NOVA-X-PANEL/NORA-TUNNEL/internal/backhaul"
 	"github.com/NOVA-X-PANEL/NORA-TUNNEL/internal/config"
+	"github.com/NOVA-X-PANEL/NORA-TUNNEL/internal/shadow"
 	"github.com/NOVA-X-PANEL/NORA-TUNNEL/internal/web"
 )
 
 var (
-	Version   = "1.1.8"
+	Version   = "1.2.0"
 	BuildDate = ""
 )
 
@@ -78,8 +79,9 @@ func main() {
 
 	cfgMgr := config.NewManager(appCfg)
 
-	// Backhaul Manager
+	// Backhaul & Nora Shadow Managers
 	bhMgr := backhaul.NewManager()
+	shadowMgr := shadow.NewManager()
 
 	// Ensure Backhaul core binary is available
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -97,19 +99,26 @@ func main() {
 	if tunCfg.Role != "" && tunCfg.Role != "none" {
 		tunCfg.Enabled = true
 		_ = cfgMgr.Update(func(c *config.TunnelConfig) { c.Enabled = true })
-		st := bhMgr.GetStatus()
-		if !st.Running {
-			log.Printf("[NORA] Auto-starting existing tunnel (%s / %s)...", tunCfg.Role, tunCfg.Mode)
-			if err := bhMgr.Start(tunCfg); err != nil {
-				log.Printf("[NORA-ERROR] Failed to auto-start tunnel: %v", err)
+		if tunCfg.Core == "shadow" {
+			log.Printf("[NORA] Auto-starting existing Nora Shadow tunnel (%s / %s)...", tunCfg.Role, tunCfg.Mode)
+			if err := shadowMgr.Start(tunCfg); err != nil {
+				log.Printf("[NORA-ERROR] Failed to auto-start Nora Shadow tunnel: %v", err)
 			}
 		} else {
-			log.Printf("[NORA] Tunnel is already actively running (%s / %s).", tunCfg.Role, tunCfg.Mode)
+			st := bhMgr.GetStatus()
+			if !st.Running {
+				log.Printf("[NORA] Auto-starting existing Backhaul tunnel (%s / %s)...", tunCfg.Role, tunCfg.Mode)
+				if err := bhMgr.Start(tunCfg); err != nil {
+					log.Printf("[NORA-ERROR] Failed to auto-start Backhaul tunnel: %v", err)
+				}
+			} else {
+				log.Printf("[NORA] Backhaul tunnel is already actively running (%s / %s).", tunCfg.Role, tunCfg.Mode)
+			}
 		}
 	}
 
 	// Web Server with resilient listener and auto port cleanup
-	srv := web.NewServer(cfgMgr, bhMgr, Version)
+	srv := web.NewServer(cfgMgr, bhMgr, shadowMgr, Version)
 	addr := fmt.Sprintf("0.0.0.0:%d", appCfg.WebPort)
 
 	httpServer := &http.Server{

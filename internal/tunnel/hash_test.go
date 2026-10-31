@@ -38,3 +38,33 @@ func TestHash_UDPTCPTransport(t *testing.T) {
 		t.Errorf("Expected ports 8080 and 2087, got %v", payload.Ports)
 	}
 }
+
+func TestHash_ShadowCore(t *testing.T) {
+	cfg := config.TunnelConfig{
+		Core:           "shadow",
+		Mode:           "reverse",
+		ControlPort:    3080,
+		IranIP:         "37.202.244.172",
+		KharejIP:       "199.247.17.46",
+		Token:          "shadow-token-xyz",
+		Ports:          []string{"443", "8443"},
+		PeerSyncSecret: "secret-xyz",
+	}
+
+	hash, err := GenerateHash(cfg)
+	if err != nil {
+		t.Fatalf("GenerateHash failed: %v", err)
+	}
+
+	payload, err := ParseHash(hash)
+	if err != nil {
+		t.Fatalf("ParseHash failed: %v", err)
+	}
+
+	if payload.Core != "shadow" {
+		t.Errorf("Expected Core 'shadow', got '%s'", payload.Core)
+	}
+	if payload.Token != "shadow-token-xyz" {
+		t.Errorf("Expected token 'shadow-token-xyz', got '%s'", payload.Token)
+	}
+}

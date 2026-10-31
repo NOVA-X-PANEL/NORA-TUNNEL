@@ -14,7 +14,8 @@ const HashPrefix = "NORA://"
 
 type ConnectionPayload struct {
 	Version     int      `json:"v"`
-	Mode        string   `json:"mode"`         // "reverse" or "direct"
+	Core        string   `json:"core,omitempty"`   // "backhaul" or "shadow"
+	Mode        string   `json:"mode"`             // "reverse" or "direct"
 	Transport   string   `json:"transport"`    // "tcpmux", "tcp", "ws", "wss"
 	ControlPort int      `json:"control_port"` // e.g. 3080
 	IranIP      string   `json:"iran_ip"`
@@ -34,9 +35,14 @@ func GenerateHash(t config.TunnelConfig) (string, error) {
 	if t.ControlPort == 0 {
 		t.ControlPort = 3080
 	}
+	core := t.Core
+	if core == "" {
+		core = "backhaul"
+	}
 
 	payload := ConnectionPayload{
 		Version:     1,
+		Core:        core,
 		Mode:        t.Mode,
 		Transport:   t.Transport,
 		ControlPort: t.ControlPort,
@@ -82,6 +88,9 @@ func ParseHash(hashStr string) (*ConnectionPayload, error) {
 	}
 	if payload.Transport == "" {
 		payload.Transport = "udp+tcp"
+	}
+	if payload.Core == "" {
+		payload.Core = "backhaul"
 	}
 
 	return &payload, nil
