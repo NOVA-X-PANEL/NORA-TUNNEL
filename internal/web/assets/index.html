@@ -1316,8 +1316,14 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label" data-i18n="paste_hash_label">کد هش تانل نورا (NORA://...):</label>
-          <textarea class="form-input" id="paste-hash-input" rows="3" placeholder="NORA://eyJtb2RlIjoicmV2ZXJzZS..."></textarea>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 6px;">
+            <label class="form-label" style="margin-bottom: 0;" data-i18n="paste_hash_label">کد هش تانل نورا (NORA://...):</label>
+            <div style="display: flex; gap: 6px;">
+              <button type="button" class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px;" onclick="pasteHashAction()" data-i18n="btn_paste_clip">📋 چسباندن</button>
+              <button type="button" class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px;" onclick="clearHashInput()" data-i18n="btn_clear_input">🧹 پاک کردن</button>
+            </div>
+          </div>
+          <textarea class="form-input" id="paste-hash-input" rows="3" placeholder="NORA://eyJtb2...JzZS..."></textarea>
         </div>
 
         <button class="btn btn-primary" onclick="connectWithHashAction()">
@@ -1548,6 +1554,8 @@
         iran_title: "📥 اتصال سریع با هش (مخصوص سرور ایران)",
         iran_desc: "کد هش تانلی که در سرور خارج تولید کرده‌اید را در کادر زیر وارد کنید و دکمه برقراری تانل را بزنید.",
         paste_hash_label: "کد هش تانل نورا (NORA://...):",
+        btn_paste_clip: "📋 چسباندن",
+        btn_clear_input: "🧹 پاک کردن",
         btn_connect_tunnel: "🔗 اعمال و برقراری آنی تانل (Connect Tunnel)",
 
         // Operations
@@ -1749,6 +1757,8 @@
         iran_title: "📥 Quick Connect via Hash (Iran Server)",
         iran_desc: "Paste the connection hash code generated from Foreign server and click Connect.",
         paste_hash_label: "NORA Tunnel Hash Code (NORA://...):",
+        btn_paste_clip: "📋 Paste",
+        btn_clear_input: "🧹 Clear",
         btn_connect_tunnel: "🔗 Connect & Start Tunnel",
 
         // Operations
@@ -2405,11 +2415,48 @@
       }
     }
 
+    function copyTextToClipboard(text) {
+      if (!text) return Promise.reject(new Error('No text to copy'));
+      if (navigator.clipboard && window.isSecureContext) {
+        return navigator.clipboard.writeText(text);
+      }
+      return new Promise((resolve, reject) => {
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.top = '0';
+        textArea.style.left = '0';
+        textArea.style.width = '2em';
+        textArea.style.height = '2em';
+        textArea.style.padding = '0';
+        textArea.style.border = 'none';
+        textArea.style.outline = 'none';
+        textArea.style.boxShadow = 'none';
+        textArea.style.background = 'transparent';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        if (textArea.setSelectionRange) {
+          textArea.setSelectionRange(0, 999999);
+        }
+        let ok = false;
+        try {
+          ok = document.execCommand('copy');
+        } catch (e) {
+          ok = false;
+        }
+        document.body.removeChild(textArea);
+        if (ok) resolve();
+        else reject(new Error('execCommand copy failed'));
+      });
+    }
+
     function selectHashText() {
       const el = document.getElementById('generated-hash-text');
       if (el) {
         el.focus();
         el.select();
+        if (el.setSelectionRange) el.setSelectionRange(0, 999999);
         showToast(t('toast_hash_selected'), 'info');
       }
     }
@@ -2425,34 +2472,60 @@
       if (el) {
         el.focus();
         el.select();
+        if (el.setSelectionRange) el.setSelectionRange(0, 999999);
       }
 
-      let copied = false;
-      try {
-        copied = document.execCommand('copy');
-      } catch (err) {
-        copied = false;
-      }
-
-      if (!copied && navigator.clipboard && window.isSecureContext) {
-        navigator.clipboard.writeText(txt).then(() => {
-          showToast(t('toast_hash_copied'), 'success');
-        }).catch(() => {
-          showToast(t('toast_hash_selected'), 'info');
-        });
-        return;
-      }
-
-      if (copied) {
+      copyTextToClipboard(txt).then(() => {
         showToast(t('toast_hash_copied'), 'success');
-      } else {
+      }).catch(() => {
         showToast(t('toast_hash_selected'), 'info');
+      });
+    }
+
+    function sanitizeHashInput(raw) {
+      if (!raw) return '';
+      // Strip wrapping quotes and whitespace
+      let s = raw.trim().replace(/^["'`]|["'`]$/g, '');
+      // Strip common invisible / zero-width characters (ZWNJ, BOM, etc.)
+      s = s.replace(/[\u200B-\u200D\uFEFF\u00A0]/g, '');
+      // Strip all internal whitespace (newlines, carriage returns, spaces, tabs)
+      s = s.replace(/\s+/g, '');
+      return s.trim();
+    }
+
+    async function pasteHashAction() {
+      try {
+        if (navigator.clipboard && navigator.clipboard.readText) {
+          const clipText = await navigator.clipboard.readText();
+          if (clipText) {
+            const sanitized = sanitizeHashInput(clipText);
+            document.getElementById('paste-hash-input').value = sanitized;
+            showToast('کد هش با موفقیت از کلیپ‌بورد درج شد', 'success');
+            return;
+          }
+        }
+      } catch (err) {
+        // clipboard read permission denied or non-HTTPS context
+      }
+      const el = document.getElementById('paste-hash-input');
+      if (el) {
+        el.focus();
+        el.select();
+        showToast('لطفاً کد هش را در کادر پیست (Paste) کنید', 'info');
+      }
+    }
+
+    function clearHashInput() {
+      const el = document.getElementById('paste-hash-input');
+      if (el) {
+        el.value = '';
+        el.focus();
       }
     }
 
     async function connectWithHashAction() {
       const hashInput = document.getElementById('paste-hash-input');
-      const hashStr = (hashInput ? hashInput.value : '').trim();
+      const hashStr = sanitizeHashInput(hashInput ? hashInput.value : '');
       if (!hashStr) {
         showToast(t('toast_enter_hash'), 'error');
         return;

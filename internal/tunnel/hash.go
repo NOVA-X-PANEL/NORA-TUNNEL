@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 	"strings"
+	"unicode"
 
 	"github.com/NOVA-X-PANEL/NORA-TUNNEL/internal/config"
 )
@@ -62,17 +64,110 @@ func GenerateHash(t config.TunnelConfig) (string, error) {
 	return HashPrefix + encoded, nil
 }
 
-func ParseHash(hashStr string) (*ConnectionPayload, error) {
-	trimmed := strings.TrimSpace(hashStr)
-	trimmed = strings.TrimPrefix(trimmed, HashPrefix)
+// CleanHashInput strips surrounding quotes, prefixes (case-insensitively), zero-width characters,
+// and any internal whitespace (spaces, tabs, newlines) introduced by mobile copy-paste or textareas.
+func CleanHashInput(hashStr string) string {
+	s := hashStr
 
-	raw, err := base64.RawURLEncoding.DecodeString(trimmed)
-	if err != nil {
-		// Fallback to standard base64 if needed
-		raw, err = base64.StdEncoding.DecodeString(trimmed)
-		if err != nil {
-			return nil, errors.New("invalid base64 encoding in NORA hash")
+	// Strip common zero-width / invisible characters FIRST
+	s = strings.ReplaceAll(s, "\u200B", "") // Zero-Width Space
+	s = strings.ReplaceAll(s, "\u200C", "") // Zero-Width Non-Joiner (ZWNJ / نیم‌فاصله)
+	s = strings.ReplaceAll(s, "\u200D", "") // Zero-Width Joiner (ZWJ)
+	s = strings.ReplaceAll(s, "\uFEFF", "") // Byte Order Mark (BOM)
+	s = strings.ReplaceAll(s, "\u00A0", "") // Non-Breaking Space
+
+	// Trim quotes, whitespace, markdown formatting
+	s = strings.Trim(s, "\"'` 	\r\n")
+
+	// Strip scheme prefix case-insensitively: NORA://, nora://, Nora://, nora:, etc.
+	lower := strings.ToLower(s)
+	if strings.HasPrefix(lower, "nora://") {
+		s = s[7:]
+	} else if strings.HasPrefix(lower, "nora:") {
+		s = s[5:]
+	}
+
+	// Remove ALL internal whitespace (newlines, carriage returns, spaces, tabs)
+	var sb strings.Builder
+	sb.Grow(len(s))
+	for _, r := range s {
+		if !unicode.IsSpace(r) {
+			sb.WriteRune(r)
 		}
+	}
+	s = sb.String()
+
+	return strings.Trim(s, "\"'` 	\r\n")
+}
+
+// DecodeBase64Robust attempts decoding across all standard and URL-safe base64 encodings,
+// with or without padding, and with URL-encoded sequences unescaped.
+func DecodeBase64Robust(s string) ([]byte, error) {
+	if s == "" {
+		return nil, errors.New("empty hash payload")
+	}
+
+	// 1. Unescape URL percent-encoding if present (e.g. %2B, %2F, %3D)
+	if unescaped, err := url.QueryUnescape(s); err == nil && unescaped != "" {
+		s = unescaped
+	}
+
+	// Unpadded version
+	unpadded := strings.TrimRight(s, "=")
+
+	// Try all combinations of URL-safe vs Standard, Padded vs Unpadded:
+	// a. RawURLEncoding (no =)
+	if raw, err := base64.RawURLEncoding.DecodeString(unpadded); err == nil {
+		return raw, nil
+	}
+
+	// b. RawStdEncoding (no =)
+	if raw, err := base64.RawStdEncoding.DecodeString(unpadded); err == nil {
+		return raw, nil
+	}
+
+	// c. Normalized standard characters (- to +, _ to /)
+	stdChars := strings.NewReplacer("-", "+", "_", "/").Replace(unpadded)
+	if raw, err := base64.RawStdEncoding.DecodeString(stdChars); err == nil {
+		return raw, nil
+	}
+
+	// d. Standard padding
+	paddedStd := stdChars
+	switch len(paddedStd) % 4 {
+	case 2:
+		paddedStd += "=="
+	case 3:
+		paddedStd += "="
+	}
+	if raw, err := base64.StdEncoding.DecodeString(paddedStd); err == nil {
+		return raw, nil
+	}
+
+	// e. URLEncoding with padding
+	paddedURL := unpadded
+	switch len(paddedURL) % 4 {
+	case 2:
+		paddedURL += "=="
+	case 3:
+		paddedURL += "="
+	}
+	if raw, err := base64.URLEncoding.DecodeString(paddedURL); err == nil {
+		return raw, nil
+	}
+
+	return nil, errors.New("invalid base64 encoding in NORA hash")
+}
+
+func ParseHash(hashStr string) (*ConnectionPayload, error) {
+	cleaned := CleanHashInput(hashStr)
+	if cleaned == "" {
+		return nil, errors.New("empty NORA hash")
+	}
+
+	raw, err := DecodeBase64Robust(cleaned)
+	if err != nil {
+		return nil, errors.New("invalid base64 encoding in NORA hash")
 	}
 
 	var payload ConnectionPayload
