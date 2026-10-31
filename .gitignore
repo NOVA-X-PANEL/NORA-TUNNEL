@@ -4,3 +4,4 @@
 bin/
 backhaul_data/
 config.json
+*test_shadow_key*
