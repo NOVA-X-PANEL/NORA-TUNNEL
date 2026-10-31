@@ -1221,24 +1221,24 @@
         </div>
 
         <!-- Mode Select -->
-        <label class="form-label" data-i18n="engine_mode_label">انتخاب حالت هسته بک‌هال (Engine Mode):</label>
+        <label class="form-label" id="engine-mode-label" data-i18n="engine_mode_label">انتخاب حالت هسته بک‌هال (Engine Mode):</label>
         <div class="mode-cards">
           <div class="mode-card selected" id="mode-reverse" onclick="selectMode('reverse')">
             <div class="mode-card-header">
-              <span class="mode-name" data-i18n="mode_reverse_name">🔄 بک‌هال ریورس (Reverse)</span>
-              <span class="mode-tag" data-i18n="mode_reverse_tag">پیشنهادی برای ایران</span>
+              <span class="mode-name" id="mode-reverse-name" data-i18n="mode_reverse_name">🔄 بک‌هال ریورس (Reverse)</span>
+              <span class="mode-tag" id="mode-reverse-tag" data-i18n="mode_reverse_tag">پیشنهادی برای ایران</span>
             </div>
-            <div class="mode-desc" data-i18n="mode_reverse_desc">
+            <div class="mode-desc" id="mode-reverse-desc" data-i18n="mode_reverse_desc">
               سرور خارج به سمت سرور ایران متصل می‌شود. پورت‌ها روی سرور ایران باز می‌شوند. بهترین حالت برای عبور از فیلترینگ شدید مخابرات.
             </div>
           </div>
 
           <div class="mode-card" id="mode-direct" onclick="selectMode('direct')">
             <div class="mode-card-header">
-              <span class="mode-name" data-i18n="mode_direct_name">➡️ بک‌هال دایرکت (Direct)</span>
-              <span class="mode-tag" data-i18n="mode_direct_tag">ارتباط مستقیم</span>
+              <span class="mode-name" id="mode-direct-name" data-i18n="mode_direct_name">➡️ بک‌هال دایرکت (Direct)</span>
+              <span class="mode-tag" id="mode-direct-tag" data-i18n="mode_direct_tag">ارتباط مستقیم</span>
             </div>
-            <div class="mode-desc" data-i18n="mode_direct_desc">
+            <div class="mode-desc" id="mode-direct-desc" data-i18n="mode_direct_desc">
               سرور ایران کلاینت است و به سرور خارج متصل می‌شود. مناسب برای سرورهایی که پورت ورودی ایران بسته است.
             </div>
           </div>
@@ -1251,7 +1251,7 @@
           </div>
 
           <div class="form-group" id="transport-form-group">
-            <label class="form-label" data-i18n="transport_label">پروتکل ترنسپورت (Transport):</label>
+            <label class="form-label" id="transport-label" data-i18n="transport_label">پروتکل ترنسپورت (Transport):</label>
             <select class="form-select" id="transport-select">
               <option value="udp+tcp" selected data-i18n="opt_udp_tcp">UDP + TCP همزمان (پشتیبانی وایرگارد و VLESS / پیشنهاد اصلی)</option>
               <option value="tcpmux" data-i18n="opt_tcpmux">tcpmux (مالتی‌پلکس فوق‌سریع - فقط TCP)</option>
@@ -1262,7 +1262,7 @@
           </div>
 
           <div class="form-group">
-            <label class="form-label" data-i18n="ctrl_port_label">پورت کنترل بک‌هال (Control Port):</label>
+            <label class="form-label" id="ctrl-port-label" data-i18n="ctrl_port_label">پورت کنترل بک‌هال (Control Port):</label>
             <input type="number" class="form-input" id="ctrl-port-input" value="3080">
           </div>
         </div>
@@ -1888,6 +1888,8 @@
 
       document.title = (lang === 'fa' ? 'NORA TUNNEL — تانل هوشمند بک‌هال' : 'NORA TUNNEL — Smart Backhaul Management');
 
+      selectCore(selectedCore);
+
       if (triggerRefresh) {
         refreshStatus();
       }
@@ -1909,10 +1911,56 @@
       if (bh) bh.classList.toggle('selected', core === 'backhaul');
       if (sh) sh.classList.toggle('selected', core === 'shadow');
 
-      const trGroup = document.getElementById('transport-form-group');
-      if (trGroup) {
-        trGroup.style.opacity = core === 'shadow' ? '0.4' : '1';
-        trGroup.style.pointerEvents = core === 'shadow' ? 'none' : 'auto';
+      const modeLabel = document.getElementById('engine-mode-label');
+      const revName = document.getElementById('mode-reverse-name');
+      const dirName = document.getElementById('mode-direct-name');
+      const revTag = document.getElementById('mode-reverse-tag');
+      const dirTag = document.getElementById('mode-direct-tag');
+      const revDesc = document.getElementById('mode-reverse-desc');
+      const dirDesc = document.getElementById('mode-direct-desc');
+      const ctrlPortLabel = document.getElementById('ctrl-port-label');
+      const trSelect = document.getElementById('transport-select');
+
+      const isFa = currentLang === 'fa';
+
+      if (core === 'shadow') {
+        if (modeLabel) modeLabel.innerText = isFa ? 'حالت و معماری نورا شدو (Shadow Architecture):' : 'Nora Shadow Architecture Mode:';
+        if (revName) revName.innerText = isFa ? '🔄 نورا شدو ریورس (Reverse SSH)' : '🔄 Nora Shadow Reverse (Reverse SSH)';
+        if (dirName) dirName.innerText = isFa ? '➡️ نورا شدو دایرکت (Direct SSH)' : '➡️ Nora Shadow Direct (Direct SSH)';
+        if (revTag) revTag.innerText = isFa ? 'پیشنهادی ضد فیلتر' : 'Recommended Stealth';
+        if (dirTag) dirTag.innerText = isFa ? 'ارتباط مستقیم SSH' : 'Direct SSH';
+        if (revDesc) revDesc.innerText = isFa ? 'سرور خارج لیسنر امنیتی SSH بوده و سرور ایران به آن متصل می‌شود. بالاترین مقاومت در برابر اینترنت ملی و وایت‌لیست.' : 'Foreign server runs the SSH stealth listener and Iran client connects. Best resilience against strict filtering.';
+        if (dirDesc) dirDesc.innerText = isFa ? 'سرور ایران کلاینت است و به شل سرور خارج متصل می‌شود. مناسب برای سناریوهای اتصال معکوس.' : 'Iran server acts as client connecting to Foreign server SSH shell.';
+        if (ctrlPortLabel) ctrlPortLabel.innerText = isFa ? 'پورت امنیتی نورا شدو (SSH Control Port):' : 'Nora Shadow SSH Control Port:';
+        if (trSelect) {
+          trSelect.innerHTML = `<option value="ssh-stealth" selected>${isFa ? '🛡️ استتار امنیتی SSH (دوگانه TCP + UDP خودکار)' : '🛡️ SSH Stealth (Auto TCP + UDP)'}</option>`;
+          trSelect.disabled = true;
+          trSelect.style.background = 'rgba(157,78,221,0.12)';
+          trSelect.style.borderColor = 'rgba(157,78,221,0.5)';
+          trSelect.style.color = '#c77dff';
+        }
+      } else {
+        if (modeLabel) modeLabel.innerText = isFa ? 'انتخاب حالت هسته بک‌هال (Engine Mode):' : 'Backhaul Engine Mode:';
+        if (revName) revName.innerText = isFa ? '🔄 بک‌هال ریورس (Reverse)' : '🔄 Backhaul Reverse';
+        if (dirName) dirName.innerText = isFa ? '➡️ بک‌هال دایرکت (Direct)' : '➡️ Backhaul Direct';
+        if (revTag) revTag.innerText = isFa ? 'پیشنهادی برای ایران' : 'Recommended for Iran';
+        if (dirTag) dirTag.innerText = isFa ? 'ارتباط مستقیم' : 'Direct';
+        if (revDesc) revDesc.innerText = isFa ? 'سرور خارج به سمت سرور ایران متصل می‌شود. پورت‌ها روی سرور ایران باز می‌شوند. بهترین حالت برای عبور از فیلترینگ شدید مخابرات.' : 'Foreign server connects to Iran server. Ports open on Iran server.';
+        if (dirDesc) dirDesc.innerText = isFa ? 'سرور ایران کلاینت است و به سرور خارج متصل می‌شود. مناسب برای سرورهایی که پورت ورودی ایران بسته است.' : 'Iran server connects to Foreign server.';
+        if (ctrlPortLabel) ctrlPortLabel.innerText = isFa ? 'پورت کنترل بک‌هال (Control Port):' : 'Backhaul Control Port:';
+        if (trSelect) {
+          trSelect.disabled = false;
+          trSelect.style.background = '';
+          trSelect.style.borderColor = '';
+          trSelect.style.color = '';
+          trSelect.innerHTML = `
+            <option value="udp+tcp" selected>${isFa ? 'UDP + TCP همزمان (پشتیبانی وایرگارد و VLESS / پیشنهاد اصلی)' : 'Simultaneous UDP + TCP (WireGuard & VLESS / Recommended)'}</option>
+            <option value="tcpmux">${isFa ? 'tcpmux (مالتی‌پلکس فوق‌سریع - فقط TCP)' : 'tcpmux (Ultra-fast multiplex - TCP only)'}</option>
+            <option value="ws">${isFa ? 'WebSocket (WS - فقط TCP)' : 'WebSocket (WS - TCP only)'}</option>
+            <option value="tcp">${isFa ? 'TCP ساده (دوگانه TCP+UDP)' : 'Plain TCP (TCP+UDP dual)'}</option>
+            <option value="wsmux">WS Mux (TCP only)</option>
+          `;
+        }
       }
     }
 
