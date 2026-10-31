@@ -1072,6 +1072,11 @@
           <span id="status-text" data-i18n="checking_status">بررسی وضعیت...</span>
         </div>
 
+        <div class="status-badge" id="watchdog-badge" style="cursor: pointer; border-color: rgba(0, 245, 255, 0.25);" onclick="toggleWatchdogModal()" title="وضعیت محافظ خودکار تانل">
+          <span class="dot" id="watchdog-dot" style="background: var(--neon-cyan); box-shadow: 0 0 8px var(--neon-cyan);"></span>
+          <span id="watchdog-text">🛡️ محافظ فعال</span>
+        </div>
+
         <button class="hamburger-btn" onclick="toggleDrawer()" title="منوی امکانات و بروزرسانی" data-i18n-title="drawer_btn_title">
           <span></span>
           <span></span>
@@ -1095,6 +1100,10 @@
         </div>
         <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" id="ping-peer-info">
           <span data-i18n="ping_peer_waiting">سرور مقابل: در انتظار اتصال</span>
+        </div>
+        <div style="font-size: 11px; margin-top: 6px; display: flex; align-items: center; justify-content: space-between;" id="watchdog-stat-row">
+          <span style="color: var(--neon-cyan);"><span data-i18n="watchdog_label">🛡️ بازیابی خودکار:</span> <strong id="watchdog-restarts-count">۰</strong> بار</span>
+          <span id="watchdog-heal-indicator" style="color: var(--text-muted); font-size: 10px;">بدون قطعی</span>
         </div>
       </div>
 
@@ -1478,6 +1487,7 @@
         // Metrics
         metric_ping_title: "📡 پینگ بین دو سرور",
         metric_ping_live: "زنده",
+        watchdog_label: "🛡️ بازیابی خودکار:",
         metric_ping_none: "🔴 عدم برقراری پینگ",
         metric_ping_good: "🟢 عالی و پایدار",
         metric_ping_fair: "🟡 تاخیر مناسب",
@@ -1678,6 +1688,7 @@
         // Metrics
         metric_ping_title: "📡 Inter-Server Latency (Ping)",
         metric_ping_live: "Live",
+        watchdog_label: "🛡️ Auto-Recovery:",
         metric_ping_none: "🔴 No Ping",
         metric_ping_good: "🟢 Fast & Stable",
         metric_ping_fair: "🟡 Moderate Latency",
@@ -2154,6 +2165,48 @@
           }
         }
 
+        // Watchdog Status
+        const wd = obj.watchdog || {};
+        const wdBadge = document.getElementById('watchdog-badge');
+        const wdDot = document.getElementById('watchdog-dot');
+        const wdText = document.getElementById('watchdog-text');
+        const wdCount = document.getElementById('watchdog-restarts-count');
+        const wdIndicator = document.getElementById('watchdog-heal-indicator');
+
+        if (wdBadge && wdText) {
+          if (wd.enabled) {
+            if (wdDot) {
+              wdDot.style.background = 'var(--neon-cyan)';
+              wdDot.style.boxShadow = '0 0 8px var(--neon-cyan)';
+            }
+            wdText.innerText = (wd.auto_restart_count > 0)
+              ? `🛡️ محافظ فعال (${wd.auto_restart_count} بازیابی)`
+              : '🛡️ محافظ فعال';
+          } else {
+            if (wdDot) {
+              wdDot.style.background = 'var(--text-muted)';
+              wdDot.style.boxShadow = 'none';
+            }
+            wdText.innerText = '🛡️ محافظ غیرفعال';
+          }
+        }
+
+        if (wdCount) {
+          wdCount.innerText = wd.auto_restart_count || 0;
+        }
+        if (wdIndicator) {
+          if (wd.consecutive_failures > 0) {
+            wdIndicator.innerText = `⚠️ هشدار قطعی (${wd.consecutive_failures}/${wd.failure_threshold || 4})`;
+            wdIndicator.style.color = 'var(--warning)';
+          } else if (wd.auto_restart_count > 0) {
+            wdIndicator.innerText = wd.last_message || 'خودترمیمی فعال';
+            wdIndicator.style.color = 'var(--neon-cyan)';
+          } else {
+            wdIndicator.innerText = 'اتصال پایدار';
+            wdIndicator.style.color = 'var(--text-muted)';
+          }
+        }
+
         // Traffic Stats
         const tr = obj.traffic || {};
         if (document.getElementById('metric-traffic-total')) {
@@ -2442,6 +2495,29 @@
         }
       } catch (e) {
         showToast('خطا: ' + e, 'error');
+      }
+    }
+
+    async function toggleWatchdogModal() {
+      try {
+        const res = await authFetch('/api/watchdog/status');
+        const data = await res.json();
+        if (data.success && data.obj) {
+          const wd = data.obj;
+          const statusStr = wd.enabled ? 'فعال (Active)' : 'غیرفعال (Disabled)';
+          const msg = `🛡️ وضعیت سامانه محافظ خودکار (Auto-Heal Watchdog):\n\n• وضعیت: ${statusStr}\n• تعداد بازیابی‌های خودکار: ${wd.auto_restart_count} بار\n• خطاهای متوالی فعلی: ${wd.consecutive_failures}/${wd.failure_threshold}\n• آخرین رویداد: ${wd.last_message || '--'}\n\nآیا مایلید وضعیت فعال/غیرفعال بودن محافظ خودکار را تغییر دهید؟`;
+          if (confirm(msg)) {
+            const toggleRes = await authFetch('/api/watchdog/toggle', {
+              method: 'POST',
+              body: JSON.stringify({ enabled: !wd.enabled })
+            });
+            const tData = await toggleRes.json();
+            showToast(tData.msg || 'وضعیت محافظ تغییر یافت', 'info');
+            refreshStatus();
+          }
+        }
+      } catch (e) {
+        showToast('خطا در دریافت وضعیت محافظ: ' + e, 'error');
       }
     }
 

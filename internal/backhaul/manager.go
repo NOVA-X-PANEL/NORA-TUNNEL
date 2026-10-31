@@ -248,9 +248,9 @@ func (m *Manager) GenerateConfig(cfg config.TunnelConfig) (string, error) {
 		sb.WriteString(fmt.Sprintf("transport = \"%s\"\n", actualTransport))
 		sb.WriteString("accept_udp = true\n")
 		sb.WriteString(fmt.Sprintf("token = \"%s\"\n", cfg.Token))
-		sb.WriteString("keepalive_period = 75\n")
+		sb.WriteString("keepalive_period = 20\n")
 		sb.WriteString("nodelay = true\n")
-		sb.WriteString("heartbeat = 30\n")
+		sb.WriteString("heartbeat = 20\n")
 		sb.WriteString("channel_size = 4096\n")
 		sb.WriteString("sniffer = false\n")
 		sb.WriteString("web_port = 0\n")
@@ -274,11 +274,12 @@ func (m *Manager) GenerateConfig(cfg config.TunnelConfig) (string, error) {
 		sb.WriteString(fmt.Sprintf("remote_addr = \"%s:%d\"\n", remoteIP, cfg.ControlPort))
 		sb.WriteString(fmt.Sprintf("transport = \"%s\"\n", actualTransport))
 		sb.WriteString(fmt.Sprintf("token = \"%s\"\n", cfg.Token))
-		sb.WriteString("connection_pool = 10\n")
-		sb.WriteString("keepalive_period = 75\n")
+		sb.WriteString("connection_pool = 6\n")
+		sb.WriteString("keepalive_period = 20\n")
+		sb.WriteString("heartbeat = 20\n")
 		sb.WriteString("nodelay = true\n")
-		sb.WriteString("retry_interval = 3\n")
-		sb.WriteString("dial_timeout = 10\n")
+		sb.WriteString("retry_interval = 2\n")
+		sb.WriteString("dial_timeout = 8\n")
 		sb.WriteString("sniffer = false\n")
 		sb.WriteString("web_port = 0\n")
 		sb.WriteString("log_level = \"info\"\n")
@@ -291,6 +292,16 @@ func (m *Manager) GenerateConfig(cfg config.TunnelConfig) (string, error) {
 	return content, nil
 }
 
+func TuneTCPSysctl() {
+	if os.Geteuid() != 0 {
+		return
+	}
+	_ = exec.Command("sysctl", "-w", "net.ipv4.tcp_keepalive_time=60").Run()
+	_ = exec.Command("sysctl", "-w", "net.ipv4.tcp_keepalive_intvl=10").Run()
+	_ = exec.Command("sysctl", "-w", "net.ipv4.tcp_keepalive_probes=3").Run()
+	_ = exec.Command("sysctl", "-w", "net.core.somaxconn=65535").Run()
+}
+
 func (m *Manager) Start(cfg config.TunnelConfig) error {
 	bin, err := m.EnsureBinary(context.Background())
 	if err != nil {
@@ -298,6 +309,7 @@ func (m *Manager) Start(cfg config.TunnelConfig) error {
 	}
 
 	EnsureFirewallRules(cfg)
+	TuneTCPSysctl()
 
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -414,8 +426,16 @@ func (m *Manager) Reset() error {
 }
 
 func (m *Manager) Restart(cfg config.TunnelConfig) error {
+	m.appendLog("[NORA] Restarting Backhaul tunnel service...")
 	_ = m.Stop()
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(600 * time.Millisecond)
+	if os.Geteuid() == 0 && cfg.ControlPort > 0 {
+		// If server role, terminate any zombie sockets holding control port
+		isServer := (cfg.Mode == "reverse" && cfg.Role == "iran") || (cfg.Mode == "direct" && cfg.Role == "kharej")
+		if isServer {
+			_ = exec.Command("fuser", "-k", fmt.Sprintf("%d/tcp", cfg.ControlPort)).Run()
+		}
+	}
 	return m.Start(cfg)
 }
 

@@ -23,6 +23,7 @@ import (
 	"github.com/NOVA-X-PANEL/NORA-TUNNEL/internal/system"
 	"github.com/NOVA-X-PANEL/NORA-TUNNEL/internal/traffic"
 	"github.com/NOVA-X-PANEL/NORA-TUNNEL/internal/tunnel"
+	"github.com/NOVA-X-PANEL/NORA-TUNNEL/internal/watchdog"
 )
 
 //go:embed all:assets
@@ -32,6 +33,7 @@ type Server struct {
 	cfgMgr    *config.Manager
 	bhMgr     *backhaul.Manager
 	shadowMgr *shadow.Manager
+	watchdog  *watchdog.Watchdog
 	mux       *http.ServeMux
 	version   string
 }
@@ -43,15 +45,17 @@ type ApiResponse struct {
 }
 
 func NewServer(cfgMgr *config.Manager, bhMgr *backhaul.Manager, shadowMgr *shadow.Manager, version string) *Server {
+	wd := watchdog.NewWatchdog(cfgMgr, bhMgr, shadowMgr)
 	s := &Server{
 		cfgMgr:    cfgMgr,
 		bhMgr:     bhMgr,
 		shadowMgr: shadowMgr,
+		watchdog:  wd,
 		mux:       http.NewServeMux(),
 		version:   version,
 	}
 	s.registerRoutes()
-	go s.startBackgroundPing()
+	wd.Start()
 	return s
 }
 
@@ -81,6 +85,9 @@ func (s *Server) registerRoutes() {
 	s.mux.HandleFunc("/api/system/update", s.handleSystemUpdate)
 	s.mux.HandleFunc("/api/system/diag", s.handleSystemDiag)
 	s.mux.HandleFunc("/api/traffic/reset", s.handleResetTraffic)
+	s.mux.HandleFunc("/api/watchdog/status", s.handleWatchdogStatus)
+	s.mux.HandleFunc("/api/watchdog/toggle", s.handleWatchdogToggle)
+	s.mux.HandleFunc("/api/watchdog/restart", s.handleWatchdogRestart)
 
 	// Static web files
 	subFS, err := fs.Sub(webFS, "assets")
@@ -267,10 +274,11 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := map[string]interface{}{
-		"version": s.version,
-		"config":  cfg,
-		"status":  status,
-		"traffic": traffic.GetCollector().GetStats(),
+		"version":  s.version,
+		"config":   cfg,
+		"status":   status,
+		"traffic":  traffic.GetCollector().GetStats(),
+		"watchdog": s.watchdog.GetStatus(),
 	}
 	s.jsonResponse(w, true, "", data)
 }
@@ -452,6 +460,7 @@ func (s *Server) handleRestartTunnel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	backhaul.EnsureFirewallRules(cfg)
+	s.watchdog.ResetFailures()
 
 	s.jsonResponse(w, true, "Tunnel restarted successfully", nil)
 }
@@ -788,44 +797,50 @@ func (s *Server) handleSystemUpdate(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (s *Server) startBackgroundPing() {
-	ticker := time.NewTicker(5 * time.Second)
-	defer ticker.Stop()
-
-	for range ticker.C {
-		cfg := s.cfgMgr.Get()
-		targetIP := cfg.IranIP
-		if cfg.Role == "iran" {
-			targetIP = cfg.KharejIP
-		}
-
-		if targetIP == "" {
-			continue
-		}
-
-		ctrlPort := cfg.ControlPort
-		if ctrlPort <= 0 {
-			ctrlPort = 3080
-		}
-
-		ports := []int{ctrlPort, 7777}
-		reached := false
-		for _, p := range ports {
-			start := time.Now()
-			conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%d", targetIP, p), 2*time.Second)
-			if err == nil {
-				conn.Close()
-				latencyMs := time.Since(start).Milliseconds()
-				s.bhMgr.UpdatePing(latencyMs)
-				reached = true
-				break
-			}
-		}
-
-		if !reached {
-			s.bhMgr.UpdatePing(-1)
-		}
+func (s *Server) handleWatchdogStatus(w http.ResponseWriter, r *http.Request) {
+	if !s.isAuthenticated(r) {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
 	}
+	s.jsonResponse(w, true, "", s.watchdog.GetStatus())
+}
+
+func (s *Server) handleWatchdogToggle(w http.ResponseWriter, r *http.Request) {
+	if !s.isAuthenticated(r) {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Enabled bool `json:"enabled"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	s.watchdog.SetEnabled(req.Enabled)
+	msg := "محافظ خودکار تانل فعال شد"
+	if !req.Enabled {
+		msg = "محافظ خودکار تانل موقتاً غیرفعال شد"
+	}
+	s.jsonResponse(w, true, msg, s.watchdog.GetStatus())
+}
+
+func (s *Server) handleWatchdogRestart(w http.ResponseWriter, r *http.Request) {
+	if !s.isAuthenticated(r) {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	err := s.watchdog.TriggerManualRestart()
+	if err != nil {
+		s.jsonResponse(w, false, "خطا در اجرای ری‌استارت تانل: "+err.Error(), nil)
+		return
+	}
+	s.jsonResponse(w, true, "دستور بازیابی و ری‌استارت تانل توسط محافظ خودکار اجرا شد", s.watchdog.GetStatus())
 }
 
 func (s *Server) handleSystemDiag(w http.ResponseWriter, r *http.Request) {
