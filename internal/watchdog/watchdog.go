@@ -39,6 +39,7 @@ type Watchdog struct {
 	checkInterval       time.Duration
 	cooldown            time.Duration
 	consecutiveFailures int
+	consecutiveRestarts int
 	autoRestartCount    int64
 	lastCheck           time.Time
 	lastSuccess         time.Time
@@ -174,6 +175,7 @@ func (w *Watchdog) checkOnce() {
 			log.Printf("[NORA-WATCHDOG] ✅ Tunnel connection recovered healthy (ping: %d ms)", latencyMs)
 		}
 		w.consecutiveFailures = 0
+		w.consecutiveRestarts = 0
 		w.lastPingMs = latencyMs
 		w.lastSuccess = time.Now()
 		w.lastMessage = fmt.Sprintf("ارتباط تانل فعال و پایدار است (پینگ: %d ms)", latencyMs)
@@ -190,9 +192,11 @@ func (w *Watchdog) checkOnce() {
 	// Evaluate auto-restart threshold
 	if w.consecutiveFailures >= w.failureThreshold {
 		now := time.Now()
-		if now.Sub(w.lastAutoRestart) >= w.cooldown {
+		dynamicCooldown := w.getDynamicCooldown()
+		if now.Sub(w.lastAutoRestart) >= dynamicCooldown {
 			w.lastAutoRestart = now
 			w.autoRestartCount++
+			w.consecutiveRestarts++
 			w.consecutiveFailures = 0
 			restartNum := w.autoRestartCount
 
@@ -219,9 +223,20 @@ func (w *Watchdog) checkOnce() {
 				}
 			}(cfg, restartNum)
 		} else {
-			log.Printf("[NORA-WATCHDOG] Cooldown active (last restart %v ago). Awaiting next probe window.", time.Since(w.lastAutoRestart).Round(time.Second))
+			log.Printf("[NORA-WATCHDOG] Cooldown active (%v remaining). Awaiting next probe window.", dynamicCooldown-now.Sub(w.lastAutoRestart).Round(time.Second))
 		}
 	}
+}
+
+func (w *Watchdog) getDynamicCooldown() time.Duration {
+	if w.consecutiveRestarts <= 2 {
+		return 25 * time.Second
+	} else if w.consecutiveRestarts <= 4 {
+		return 45 * time.Second
+	} else if w.consecutiveRestarts <= 6 {
+		return 90 * time.Second
+	}
+	return 120 * time.Second
 }
 
 func (w *Watchdog) probePeer(cfg config.TunnelConfig) (bool, int64) {
