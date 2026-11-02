@@ -230,26 +230,38 @@
     /* Navigation Tabs */
     .tabs-bar {
       display: flex;
-      gap: 10px;
-      border-bottom: 1px solid var(--border-color);
-      margin-bottom: 24px;
-      padding-bottom: 12px;
+      gap: 6px;
+      background: rgba(14, 17, 27, 0.7);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      padding: 5px;
+      border-radius: 14px;
+      border: 1px solid var(--border-color);
+      margin-bottom: 22px;
       overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .tabs-bar::-webkit-scrollbar {
+      display: none;
     }
 
     .tab-btn {
+      flex: 1;
+      min-width: max-content;
       background: transparent;
       border: 1px solid transparent;
       color: var(--text-muted);
-      padding: 10px 20px;
-      border-radius: 12px;
-      font-size: 14px;
-      font-weight: 600;
+      padding: 10px 18px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 700;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
       white-space: nowrap;
       display: flex;
       align-items: center;
+      justify-content: center;
       gap: 8px;
     }
 
@@ -259,10 +271,10 @@
     }
 
     .tab-btn.active {
-      color: var(--neon-cyan);
-      background: rgba(0, 245, 212, 0.1);
-      border-color: rgba(0, 245, 212, 0.3);
-      box-shadow: 0 0 15px rgba(0, 245, 212, 0.15);
+      color: #fff;
+      background: rgba(0, 245, 212, 0.14);
+      border-color: rgba(0, 245, 212, 0.4);
+      box-shadow: 0 0 16px rgba(0, 245, 212, 0.18);
     }
 
     /* Main Sections */
@@ -603,11 +615,117 @@
       to { transform: translateX(0); opacity: 1; }
     }
 
-    /* Responsive */
-    @media (max-width: 768px) {
-      header { flex-direction: column; gap: 14px; align-items: flex-start; }
-      .top-stats { width: 100%; justify-content: space-between; }
-      .metrics-grid { grid-template-columns: 1fr; }
+    /* Primary Header Structure */
+    header {
+      background: rgba(14, 17, 27, 0.75);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--border-color);
+      border-radius: 18px;
+      padding: 16px 22px;
+      margin-bottom: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+      box-sizing: border-box;
+    }
+    .header-main {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      gap: 16px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+    }
+    .brand-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, rgba(0, 245, 212, 0.2), rgba(0, 245, 212, 0.05));
+      border: 1px solid rgba(0, 245, 212, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      box-shadow: 0 0 20px rgba(0, 245, 212, 0.2);
+      flex-shrink: 0;
+    }
+    .brand-text {
+      min-width: 0;
+    }
+    .brand-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .brand-title {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(90deg, #fff, var(--neon-cyan));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      line-height: 1.2;
+      white-space: nowrap;
+    }
+    .brand-tag {
+      font-size: 10px;
+      font-weight: 800;
+      padding: 2px 7px;
+      border-radius: 6px;
+      background: rgba(0, 245, 212, 0.15);
+      color: var(--neon-cyan);
+      border: 1px solid rgba(0, 245, 212, 0.35);
+      letter-spacing: 0.5px;
+    }
+    .brand-sub {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    .header-sub-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding-top: 10px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      flex-wrap: wrap;
+    }
+    .sub-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-color);
+      font-size: 12px;
+      transition: all 0.2s ease;
+    }
+    .sub-badge.clickable {
+      cursor: pointer;
+    }
+    .sub-badge.clickable:hover {
+      background: rgba(0, 245, 212, 0.08);
+      border-color: rgba(0, 245, 212, 0.35);
+    }
+    .sub-badge-label {
+      color: var(--text-muted);
     }
 
     /* Hamburger Button */
@@ -615,28 +733,41 @@
       width: 42px;
       height: 42px;
       border-radius: 12px;
-      background: rgba(255, 255, 255, 0.05);
+      background: rgba(255, 255, 255, 0.04);
       border: 1px solid var(--border-color);
       display: flex;
-      flex-direction: column;
-      justify-content: center;
       align-items: center;
-      gap: 5px;
+      justify-content: center;
       cursor: pointer;
-      transition: all 0.25s ease;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
       position: relative;
+      flex-shrink: 0;
+      padding: 0;
     }
-    .hamburger-btn:hover {
-      background: rgba(0, 245, 212, 0.12);
-      border-color: var(--neon-cyan);
-      box-shadow: var(--glow-cyan);
+    .hamburger-lines {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      width: 20px;
     }
-    .hamburger-btn span {
+    .hamburger-lines span {
       width: 20px;
       height: 2px;
       background: var(--neon-cyan);
       border-radius: 2px;
       transition: all 0.25s ease;
+      display: block;
+    }
+    .hamburger-btn:hover {
+      background: rgba(0, 245, 212, 0.12);
+      border-color: var(--neon-cyan);
+      box-shadow: 0 0 16px rgba(0, 245, 212, 0.3);
+      transform: translateY(-1px);
+    }
+    .hamburger-btn:active {
+      transform: scale(0.95);
     }
     .hamburger-badge {
       position: absolute;
@@ -654,15 +785,18 @@
     .drawer-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.65);
-      backdrop-filter: blur(6px);
-      z-index: 1000;
+      background: rgba(0, 0, 0, 0.72);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      z-index: 9999;
       opacity: 0;
+      visibility: hidden;
       pointer-events: none;
-      transition: opacity 0.3s ease;
+      transition: opacity 0.3s ease, visibility 0.3s ease;
     }
     .drawer-overlay.active {
       opacity: 1;
+      visibility: visible;
       pointer-events: auto;
     }
 
@@ -670,22 +804,42 @@
     .drawer-menu {
       position: fixed;
       top: 0;
-      right: -340px;
-      width: 320px;
+      right: 0;
+      left: auto;
+      width: min(340px, 86vw);
       height: 100%;
-      background: rgba(12, 14, 22, 0.96);
+      background: rgba(10, 12, 20, 0.98);
       backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
       border-left: 1px solid var(--border-color);
-      z-index: 1001;
-      box-shadow: -10px 0 40px rgba(0, 0, 0, 0.7);
-      transition: right 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 10000;
+      box-shadow: -12px 0 45px rgba(0, 0, 0, 0.85);
+      transform: translateX(105%);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.3s ease;
       display: flex;
       flex-direction: column;
-      padding: 24px 20px;
+      padding: 20px 18px;
       direction: rtl;
+      visibility: hidden;
+      pointer-events: none;
+      box-sizing: border-box;
     }
     .drawer-menu.active {
-      right: 0;
+      transform: translateX(0);
+      visibility: visible;
+      pointer-events: auto;
+    }
+    html[dir="ltr"] .drawer-menu {
+      right: auto;
+      left: 0;
+      border-left: none;
+      border-right: 1px solid var(--border-color);
+      box-shadow: 12px 0 45px rgba(0, 0, 0, 0.85);
+      transform: translateX(-105%);
+      direction: ltr;
+    }
+    html[dir="ltr"] .drawer-menu.active {
+      transform: translateX(0);
     }
     .drawer-header {
       display: flex;
@@ -879,6 +1033,132 @@
       right: 24px;
     }
 
+    
+    /* Mobile-first and Component Layout Polish */
+    @media (max-width: 768px) {
+      .app-container {
+        padding: 12px 12px 48px;
+      }
+      .metrics-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+        margin-bottom: 18px;
+      }
+      .metric-card {
+        padding: 14px 16px;
+        border-radius: 14px;
+      }
+      .card {
+        padding: 16px;
+        border-radius: 14px;
+        margin-bottom: 16px;
+      }
+      .card-title {
+        font-size: 16px;
+      }
+      .tabs-bar {
+        padding: 4px;
+        gap: 4px;
+        margin-bottom: 16px;
+      }
+      .tab-btn {
+        padding: 8px 12px;
+        font-size: 12px;
+        gap: 5px;
+      }
+    }
+
+    /* Tunnel Action Buttons */
+    .tunnel-action-btns {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    @media (max-width: 640px) {
+      .tunnel-action-btns {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-top: 10px;
+      }
+      .tunnel-action-btns .btn {
+        width: 100%;
+        padding: 10px 8px;
+        font-size: 12px;
+        justify-content: center;
+      }
+    }
+
+    /* Ops Buttons Grid */
+    .ops-btn-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+    @media (max-width: 900px) {
+      .ops-btn-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    @media (max-width: 500px) {
+      .ops-btn-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+      .ops-btn-grid .btn {
+        font-size: 11px;
+        padding: 11px 6px;
+        text-align: center;
+        flex-direction: column;
+        gap: 5px;
+      }
+    }
+
+    /* Hash Buttons Group */
+    .hash-btn-group {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    @media (max-width: 500px) {
+      .hash-btn-group {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+      }
+      .hash-btn-group .btn {
+        width: 100%;
+        justify-content: center;
+        padding: 8px 10px;
+        font-size: 12px;
+      }
+    }
+
+    /* Add Port Row */
+    .add-port-row {
+      display: flex;
+      align-items: flex-end;
+      gap: 12px;
+    }
+    .add-port-btn {
+      height: 44px;
+      padding: 0 24px;
+      flex-shrink: 0;
+    }
+    @media (max-width: 640px) {
+      .add-port-row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+      }
+      .add-port-btn {
+        width: 100%;
+        height: 44px;
+      }
+    }
+
     /* Custom Neon/Dark Scrollbar */
     ::-webkit-scrollbar {
       width: 6px;
@@ -1049,40 +1329,55 @@
 
     <!-- Top Header -->
     <header>
-      <div class="brand">
-        <div class="brand-icon">⚡</div>
-        <div>
-          <div class="brand-title">NORA TUNNEL PRO</div>
-          <div class="brand-sub" data-i18n="brand_sub">اتوماسیون هوشمند تانل بک‌هال لایه ۴ (Backhaul)</div>
+      <!-- Primary Header Row: Brand & Main Controls -->
+      <div class="header-main">
+        <div class="brand">
+          <div class="brand-icon">⚡</div>
+          <div class="brand-text">
+            <div class="brand-title-wrap">
+              <span class="brand-title">NORA TUNNEL</span>
+              <span class="brand-tag">PRO</span>
+            </div>
+            <div class="brand-sub" data-i18n="brand_sub">اتوماسیون هوشمند تانل بک‌هال لایه ۴ (Backhaul)</div>
+          </div>
+        </div>
+
+        <div class="header-controls">
+          <!-- Connection Status Pill -->
+          <div class="status-badge" id="main-status-badge">
+            <span class="dot" id="status-dot"></span>
+            <span id="status-text" data-i18n="checking_status">بررسی وضعیت...</span>
+          </div>
+
+          <!-- Language Switcher -->
+          <button type="button" class="lang-switch-btn" onclick="toggleLanguage()" id="lang-switch-btn" title="تغییر زبان / Switch Language" data-i18n-title="lang_btn_title">
+            <span style="font-size: 13px;">🌐</span>
+            <span id="lang-btn-text">EN</span>
+          </button>
+
+          <!-- Hamburger Menu Button -->
+          <button class="hamburger-btn" onclick="toggleDrawer()" title="منوی امکانات و بروزرسانی" data-i18n-title="drawer_btn_title" aria-label="Menu">
+            <div class="hamburger-lines">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+            <span class="hamburger-badge" id="header-update-badge"></span>
+          </button>
         </div>
       </div>
 
-      <div class="top-stats">
-        <button type="button" class="lang-switch-btn" onclick="toggleLanguage()" id="lang-switch-btn" title="تغییر زبان / Switch Language" data-i18n-title="lang_btn_title">
-          <span style="font-size: 13px;">🌐</span>
-          <span id="lang-btn-text">EN</span>
-        </button>
-        <div class="status-badge" id="role-badge">
-          <span data-i18n="server_role">نقش سرور:</span>
+      <!-- Sub Header Bar: Server Role & Watchdog Badges -->
+      <div class="header-sub-bar">
+        <div class="sub-badge" id="role-badge">
+          <span class="sub-badge-label" data-i18n="server_role">نقش سرور:</span>
           <strong id="server-role-text" style="color: var(--neon-cyan)" data-i18n="role_ready">آماده پیکربندی</strong>
         </div>
 
-        <div class="status-badge">
-          <span class="dot" id="status-dot"></span>
-          <span id="status-text" data-i18n="checking_status">بررسی وضعیت...</span>
-        </div>
-
-        <div class="status-badge" id="watchdog-badge" style="cursor: pointer; border-color: rgba(0, 245, 255, 0.25);" onclick="toggleWatchdogModal()" title="وضعیت محافظ خودکار تانل">
+        <div class="sub-badge clickable" id="watchdog-badge" onclick="toggleWatchdogModal()" title="وضعیت محافظ خودکار تانل">
           <span class="dot" id="watchdog-dot" style="background: var(--neon-cyan); box-shadow: 0 0 8px var(--neon-cyan);"></span>
           <span id="watchdog-text">🛡️ محافظ فعال</span>
         </div>
-
-        <button class="hamburger-btn" onclick="toggleDrawer()" title="منوی امکانات و بروزرسانی" data-i18n-title="drawer_btn_title">
-          <span></span>
-          <span></span>
-          <span></span>
-          <span class="hamburger-badge" id="header-update-badge"></span>
-        </button>
       </div>
     </header>
 
@@ -1187,7 +1482,7 @@
               <span data-i18n="active_tunnel_desc">تانل روی این سرور پیکربندی و فعال شده است. برای تغییر کلی سرورها، ریست تنظیمات یا اتصال به یک سرور دیگر، از دکمه حذف تانل استفاده کنید.</span>
             </div>
           </div>
-          <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+          <div class="tunnel-action-btns">
             <button class="btn btn-secondary" onclick="restartTunnelAction()" style="font-size: 13px; padding: 9px 16px;">
               <span data-i18n="btn_restart_tunnel">🔄 ری‌استارت تانل</span>
             </button>
@@ -1292,11 +1587,11 @@
         <div class="hash-display-box" id="hash-box" style="display: none; flex-direction: column; gap: 10px;">
           <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
             <strong style="color: #fff; font-size: 14px;" data-i18n="hash_box_title">🔑 کد هش اختصاصی تانل (برای سرور ایران):</strong>
-            <div style="display: flex; gap: 8px;">
-              <button type="button" class="btn btn-primary" style="padding: 6px 14px; font-size: 12px;" onclick="copyHash()" data-i18n="btn_copy_hash">
+            <div class="hash-btn-group">
+              <button type="button" class="btn btn-primary" style="padding: 8px 14px; font-size: 12px;" onclick="copyHash()" data-i18n="btn_copy_hash">
                 📋 کپی هش در حافظه
               </button>
-              <button type="button" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;" onclick="selectHashText()" data-i18n="btn_select_text">
+              <button type="button" class="btn btn-secondary" style="padding: 8px 12px; font-size: 12px;" onclick="selectHashText()" data-i18n="btn_select_text">
                 🔍 انتخاب متن
               </button>
             </div>
@@ -1334,7 +1629,7 @@
       <!-- TUNNEL ACTIONS -->
       <div class="card">
         <div class="card-title" data-i18n="ops_title">🎮 کنترل و عملیات تانل</div>
-        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+        <div class="ops-btn-grid">
           <button class="btn btn-secondary" onclick="restartTunnelAction()" data-i18n="btn_restart_tunnel">🔄 ری‌استارت تانل (Restart)</button>
           <button class="btn btn-danger" onclick="stopTunnelAction()" data-i18n="btn_stop_tunnel">⏹️ توقف سرویس تانل (Stop)</button>
           <button class="btn btn-secondary" onclick="testPingAction()" data-i18n="btn_test_ping">📶 تست تاخیر و پینگ (Test Ping)</button>
@@ -1360,12 +1655,12 @@
           شما می‌توانید پورت‌ها را مستقیماً از همینجا مدیریت کنید. وقتی پورتی اضافه می‌کنید، ترافیک ورودی به این پورت در سرور ایران، مستقیم به سرور خارج منتقل می‌شود.
         </div>
 
-        <div class="form-row" style="align-items: flex-end;">
+        <div class="add-port-row">
           <div class="form-group" style="flex: 2; margin-bottom: 0;">
             <label class="form-label" data-i18n="port_input_label">شماره پورت یا رِنج پورت‌ها:</label>
             <input type="text" class="form-input" id="new-port-input" placeholder="مثال: 443 یا 8080=443 یا 10000-10050" data-i18n-ph="port_input_ph">
           </div>
-          <button class="btn btn-primary" onclick="addPortAction()" style="height: 44px;">
+          <button class="btn btn-primary add-port-btn" onclick="addPortAction()">
             <span data-i18n="btn_add_port">➕ افزودن پورت</span>
           </button>
         </div>
