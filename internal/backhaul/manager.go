@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -505,6 +506,15 @@ func (m *Manager) ConnectionHealthy() bool {
 			// newer successful handshake.
 			for i := len(lines) - 1; i >= 0; i-- {
 				line := lines[i]
+				if marker := "Round Trip Time (RTT):"; strings.Contains(line, marker) {
+					fields := strings.Fields(strings.TrimSpace(strings.SplitN(line, marker, 2)[1]))
+					if len(fields) > 0 {
+						if rtt, parseErr := strconv.Atoi(fields[0]); parseErr == nil && rtt >= 0 {
+							m.UpdatePing(int64(rtt))
+						}
+					}
+					continue
+				}
 				if strings.Contains(line, "control channel successfully established") ||
 					strings.Contains(line, "control channel established successfully") {
 					return true
