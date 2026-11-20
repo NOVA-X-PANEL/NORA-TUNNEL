@@ -41,11 +41,15 @@ func GenerateHash(t config.TunnelConfig) (string, error) {
 	if core == "" {
 		core = "backhaul"
 	}
+	mode := t.Mode
+	if core == "shadow" {
+		mode = "direct"
+	}
 
 	payload := ConnectionPayload{
 		Version:     1,
 		Core:        core,
-		Mode:        t.Mode,
+		Mode:        mode,
 		Transport:   t.Transport,
 		ControlPort: t.ControlPort,
 		IranIP:      strings.TrimSpace(t.IranIP),
@@ -186,6 +190,15 @@ func ParseHash(hashStr string) (*ConnectionPayload, error) {
 	}
 	if payload.Core == "" {
 		payload.Core = "backhaul"
+	}
+	if payload.Core != "backhaul" && payload.Core != "shadow" {
+		return nil, errors.New("invalid core in hash (must be 'backhaul' or 'shadow')")
+	}
+	// Shadow currently implements the SSH client-forwarding architecture,
+	// which is the direct mode. Normalize older hashes that labelled it reverse
+	// so they keep working without advertising an unsupported execution path.
+	if payload.Core == "shadow" {
+		payload.Mode = "direct"
 	}
 
 	return &payload, nil

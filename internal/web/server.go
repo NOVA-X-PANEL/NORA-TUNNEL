@@ -311,8 +311,19 @@ func (s *Server) handleCreateTunnel(w http.ResponseWriter, r *http.Request) {
 	if req.Core == "" {
 		req.Core = "backhaul"
 	}
+	if req.Core != "backhaul" && req.Core != "shadow" {
+		s.jsonResponse(w, false, "Invalid core. Must be 'backhaul' or 'shadow'", nil)
+		return
+	}
 	if req.Mode == "" {
 		req.Mode = "reverse"
+	}
+	if req.Mode != "reverse" && req.Mode != "direct" {
+		s.jsonResponse(w, false, "Invalid mode. Must be 'reverse' or 'direct'", nil)
+		return
+	}
+	if req.Core == "shadow" {
+		req.Mode = "direct"
 	}
 	if req.Transport == "" {
 		req.Transport = "udp+tcp"
@@ -640,6 +651,9 @@ func (s *Server) handleSwitchCore(w http.ResponseWriter, r *http.Request) {
 
 	cfg := s.cfgMgr.Get()
 	cfg.Core = req.Core
+	if cfg.Core == "shadow" {
+		cfg.Mode = "direct"
+	}
 
 	// Update hash if Kharej
 	if cfg.Role == "kharej" {
@@ -675,6 +689,18 @@ func (s *Server) handleSwitchCore(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handlePing(w http.ResponseWriter, r *http.Request) {
 	cfg := s.cfgMgr.Get()
+	if cfg.Core == "shadow" {
+		st := s.shadowMgr.GetStatus()
+		if st.LastPingMs > 0 {
+			s.jsonResponse(w, true, "Shadow RTT measured from Iran client", map[string]interface{}{
+				"latency_ms": st.LastPingMs,
+				"target":     st.RemoteIP,
+			})
+			return
+		}
+		s.jsonResponse(w, false, "Shadow RTT is measured from the Iran client after the SSH session is established", nil)
+		return
+	}
 	targetIP := cfg.IranIP
 	if cfg.Role == "iran" {
 		targetIP = cfg.KharejIP
@@ -704,6 +730,21 @@ func (s *Server) handlePing(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleLogs(w http.ResponseWriter, r *http.Request) {
+	if s.cfgMgr.Get().Core == "shadow" {
+		st := s.shadowMgr.GetStatus()
+		logs := []string{"[NORA SHADOW] SSH stealth core active"}
+		if st.RemoteIP != "" {
+			logs = append(logs, fmt.Sprintf("[NORA SHADOW] peer: %s:%d", st.RemoteIP, st.ControlPort))
+		}
+		if st.LastPingMs > 0 {
+			logs = append(logs, fmt.Sprintf("[NORA SHADOW] RTT: %d ms", st.LastPingMs))
+		}
+		if st.LastError != "" {
+			logs = append(logs, "[NORA SHADOW] ERROR: "+st.LastError)
+		}
+		s.jsonResponse(w, true, "", logs)
+		return
+	}
 	logs := s.bhMgr.GetRecentLogs(100)
 	s.jsonResponse(w, true, "", logs)
 }

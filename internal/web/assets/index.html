@@ -2303,9 +2303,14 @@
     let currentCore = 'backhaul';
     let currentPorts = [];
 
-    function selectCore(core) {
-      selectedCore = core;
-      const bh = document.getElementById('core-card-backhaul');
+	    function selectCore(core) {
+	      selectedCore = core;
+	      if (core === 'shadow') {
+	        // Shadow's SSH implementation is direct-only; keep the UI and hash
+	        // aligned instead of allowing a misleading reverse selection.
+	        selectMode('direct');
+	      }
+	      const bh = document.getElementById('core-card-backhaul');
       const sh = document.getElementById('core-card-shadow');
       if (bh) bh.classList.toggle('selected', core === 'backhaul');
       if (sh) sh.classList.toggle('selected', core === 'shadow');
@@ -2322,8 +2327,14 @@
 
       const isFa = currentLang === 'fa';
 
-      if (core === 'shadow') {
-        if (modeLabel) modeLabel.innerText = isFa ? 'حالت و معماری نورا شدو (Shadow Architecture):' : 'Nora Shadow Architecture Mode:';
+	      if (core === 'shadow') {
+	        const reverseCard = document.getElementById('mode-reverse');
+	        if (reverseCard) {
+	          reverseCard.style.opacity = '0.48';
+	          reverseCard.style.pointerEvents = 'none';
+	          reverseCard.setAttribute('aria-disabled', 'true');
+	        }
+	        if (modeLabel) modeLabel.innerText = isFa ? 'حالت و معماری نورا شدو (Shadow Architecture):' : 'Nora Shadow Architecture Mode:';
         if (revName) revName.innerText = isFa ? '🔄 نورا شدو ریورس (Reverse SSH)' : '🔄 Nora Shadow Reverse (Reverse SSH)';
         if (dirName) dirName.innerText = isFa ? '➡️ نورا شدو دایرکت (Direct SSH)' : '➡️ Nora Shadow Direct (Direct SSH)';
         if (revTag) revTag.innerText = isFa ? 'پیشنهادی ضد فیلتر' : 'Recommended Stealth';
@@ -2338,8 +2349,14 @@
           trSelect.style.borderColor = 'rgba(157,78,221,0.5)';
           trSelect.style.color = '#c77dff';
         }
-      } else {
-        if (modeLabel) modeLabel.innerText = isFa ? 'انتخاب حالت هسته بک‌هال (Engine Mode):' : 'Backhaul Engine Mode:';
+	      } else {
+	        const reverseCard = document.getElementById('mode-reverse');
+	        if (reverseCard) {
+	          reverseCard.style.opacity = '';
+	          reverseCard.style.pointerEvents = '';
+	          reverseCard.removeAttribute('aria-disabled');
+	        }
+	        if (modeLabel) modeLabel.innerText = isFa ? 'انتخاب حالت هسته بک‌هال (Engine Mode):' : 'Backhaul Engine Mode:';
         if (revName) revName.innerText = isFa ? '🔄 بک‌هال ریورس (Reverse)' : '🔄 Backhaul Reverse';
         if (dirName) dirName.innerText = isFa ? '➡️ بک‌هال دایرکت (Direct)' : '➡️ Backhaul Direct';
         if (revTag) revTag.innerText = isFa ? 'پیشنهادی برای ایران' : 'Recommended for Iran';

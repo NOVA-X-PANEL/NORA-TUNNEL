@@ -37,6 +37,13 @@ func (m *Manager) Start(cfg config.TunnelConfig) error {
 	}
 
 	m.cfg = cfg
+	// Shadow's current SSH forwarding topology is direct: the Iran client
+	// exposes the configured local ports and dials services on Kharej.
+	// Normalize legacy reverse configs instead of silently presenting a mode
+	// that the implementation cannot execute.
+	if cfg.Mode != "direct" {
+		cfg.Mode = "direct"
+	}
 	m.role = cfg.Role
 	m.mode = cfg.Mode
 	m.ctx, m.cancel = context.WithCancel(context.Background())

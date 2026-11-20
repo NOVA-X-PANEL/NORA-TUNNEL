@@ -129,6 +129,9 @@ func TestHash_ShadowCore(t *testing.T) {
 	if payload.Core != "shadow" {
 		t.Errorf("Expected Core 'shadow', got '%s'", payload.Core)
 	}
+	if payload.Mode != "direct" {
+		t.Errorf("Expected Shadow mode to normalize to 'direct', got '%s'", payload.Mode)
+	}
 	if payload.Token != "shadow-token-xyz" {
 		t.Errorf("Expected token 'shadow-token-xyz', got '%s'", payload.Token)
 	}

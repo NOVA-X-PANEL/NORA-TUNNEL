@@ -26,6 +26,7 @@ type Client struct {
 	sshClient    *ssh.Client
 	tcpListeners map[string]net.Listener
 	udpListeners map[string]*net.UDPConn
+	udpRemotePorts map[uint16]*net.UDPConn
 	udpTracker   *udpSessionTracker
 	udpChan      ssh.Channel
 	udpChanMu    sync.Mutex
@@ -46,6 +47,7 @@ func StartClient(ctx context.Context, remoteHost string, remotePort int, token s
 		cancel:       cCancel,
 		tcpListeners: make(map[string]net.Listener),
 		udpListeners: make(map[string]*net.UDPConn),
+		udpRemotePorts: make(map[uint16]*net.UDPConn),
 		udpTracker:   newUDPSessionTracker(),
 	}
 
@@ -187,29 +189,49 @@ func (c *Client) setupForwarders() error {
 		if pStr == "" {
 			continue
 		}
-		pNum, err := strconv.Atoi(pStr)
-		if err != nil || pNum <= 0 || pNum > 65535 {
-			continue
-		}
-
-		// 1. TCP Listener on 0.0.0.0:port
-		tcpL, err := net.Listen("tcp", fmt.Sprintf(":%d", pNum))
-		if err == nil {
-			c.tcpListeners[pStr] = tcpL
-			go c.forwardTCPPort(tcpL, uint16(pNum))
-		}
-
-		// 2. UDP Listener on 0.0.0.0:port
-		uAddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf(":%d", pNum))
-		if err == nil {
-			uConn, err := net.ListenUDP("udp", uAddr)
-			if err == nil {
-				c.udpListeners[pStr] = uConn
-				go c.forwardUDPPort(uConn, uint16(pNum))
+			localPort, remotePort, err := parsePortMapping(pStr)
+			if err != nil {
+				continue
 			}
+
+			// 1. TCP Listener on 0.0.0.0:port
+			tcpL, err := net.Listen("tcp", fmt.Sprintf(":%d", localPort))
+			if err == nil {
+				c.tcpListeners[strconv.Itoa(localPort)] = tcpL
+				go c.forwardTCPPort(tcpL, uint16(remotePort))
+			}
+
+			// 2. UDP Listener on 0.0.0.0:port
+			uAddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf(":%d", localPort))
+			if err == nil {
+				uConn, err := net.ListenUDP("udp", uAddr)
+				if err == nil {
+					c.udpListeners[strconv.Itoa(localPort)] = uConn
+					c.udpRemotePorts[uint16(remotePort)] = uConn
+					go c.forwardUDPPort(uConn, uint16(remotePort))
+				}
 		}
 	}
 	return nil
+}
+
+func parsePortMapping(raw string) (localPort, remotePort int, err error) {
+	parts := strings.FieldsFunc(strings.TrimSpace(raw), func(r rune) bool { return r == '=' || r == ':' })
+	if len(parts) == 0 || len(parts) > 2 {
+		return 0, 0, fmt.Errorf("invalid port mapping %q", raw)
+	}
+	localPort, err = strconv.Atoi(strings.TrimSpace(parts[0]))
+	if err != nil || localPort <= 0 || localPort > 65535 {
+		return 0, 0, fmt.Errorf("invalid local port %q", raw)
+	}
+	remotePort = localPort
+	if len(parts) == 2 {
+		remotePort, err = strconv.Atoi(strings.TrimSpace(parts[1]))
+		if err != nil || remotePort <= 0 || remotePort > 65535 {
+			return 0, 0, fmt.Errorf("invalid remote port %q", raw)
+		}
+	}
+	return localPort, remotePort, nil
 }
 
 func (c *Client) forwardTCPPort(l net.Listener, port uint16) {
@@ -284,9 +306,9 @@ func (c *Client) handleUDPIncomingFrames(ch ssh.Channel) {
 			continue
 		}
 
-		c.mu.Lock()
-		uConn, exists := c.udpListeners[strconv.Itoa(int(port))]
-		c.mu.Unlock()
+			c.mu.Lock()
+			uConn, exists := c.udpRemotePorts[port]
+			c.mu.Unlock()
 
 		if exists && uConn != nil {
 			_, _ = uConn.WriteToUDP(data, clientAddr)
@@ -304,4 +326,5 @@ func (c *Client) closeListenersLocked() {
 		_ = u.Close()
 	}
 	c.udpListeners = make(map[string]*net.UDPConn)
+	c.udpRemotePorts = make(map[uint16]*net.UDPConn)
 }
