@@ -505,7 +505,8 @@ func (m *Manager) ConnectionHealthy() bool {
 			// newer successful handshake.
 			for i := len(lines) - 1; i >= 0; i-- {
 				line := lines[i]
-				if strings.Contains(line, "control channel successfully established") {
+				if strings.Contains(line, "control channel successfully established") ||
+					strings.Contains(line, "control channel established successfully") {
 					return true
 				}
 				if strings.Contains(line, "channel dialer:") ||
