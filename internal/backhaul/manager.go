@@ -498,21 +498,24 @@ func (m *Manager) ConnectionHealthy() bool {
 		return false
 	}
 	if os.Geteuid() == 0 && hasSystemd() {
-		out, err := exec.Command("journalctl", "-u", SystemdServiceName, "-n", "80", "--no-pager").CombinedOutput()
+		out, err := exec.Command("journalctl", "-u", SystemdServiceName, "-n", "30", "--since", "2 minutes ago", "--no-pager").CombinedOutput()
 		if err == nil {
-			healthy := false
-			for _, line := range strings.Split(string(out), "\n") {
-				switch {
-				case strings.Contains(line, "control channel successfully established"):
-					healthy = true
-				case strings.Contains(line, "channel dialer:"),
-					strings.Contains(line, "shutting down client"),
-					strings.Contains(line, "shutting down server"),
-					strings.Contains(line, "all workers stopped"):
-					healthy = false
+			lines := strings.Split(string(out), "\n")
+			// Read newest-to-oldest. Older dial errors must not override a
+			// newer successful handshake.
+			for i := len(lines) - 1; i >= 0; i-- {
+				line := lines[i]
+				if strings.Contains(line, "control channel successfully established") {
+					return true
+				}
+				if strings.Contains(line, "channel dialer:") ||
+					strings.Contains(line, "shutting down client") ||
+					strings.Contains(line, "shutting down server") ||
+					strings.Contains(line, "all workers stopped") {
+					return false
 				}
 			}
-			return healthy
+			return false
 		}
 	}
 	return true
