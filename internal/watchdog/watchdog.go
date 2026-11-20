@@ -15,6 +15,7 @@ import (
 	"github.com/NOVA-X-PANEL/NORA-TUNNEL/internal/backhaul"
 	"github.com/NOVA-X-PANEL/NORA-TUNNEL/internal/config"
 	"github.com/NOVA-X-PANEL/NORA-TUNNEL/internal/shadow"
+	"github.com/NOVA-X-PANEL/NORA-TUNNEL/internal/traffic"
 )
 
 type Status struct {
@@ -82,6 +83,7 @@ func NewWatchdog(cfgMgr *config.Manager, bhMgr *backhaul.Manager, shadowMgr *sha
 }
 
 func (w *Watchdog) Start() {
+	go w.checkOnce()
 	go w.loop()
 	log.Printf("[NORA-WATCHDOG] Self-healing Watchdog started (interval: %v, threshold: %d probes)", w.checkInterval, w.failureThreshold)
 }
@@ -209,6 +211,8 @@ func (w *Watchdog) GetStatus() Status {
 func (w *Watchdog) loop() {
 	ticker := time.NewTicker(w.checkInterval)
 	defer ticker.Stop()
+	reportTicker := time.NewTicker(10 * time.Minute)
+	defer reportTicker.Stop()
 
 	for {
 		select {
@@ -216,8 +220,29 @@ func (w *Watchdog) loop() {
 			return
 		case <-ticker.C:
 			w.checkOnce()
+		case <-reportTicker.C:
+			go w.sendPeriodicReport()
 		}
 	}
+}
+
+func (w *Watchdog) sendPeriodicReport() {
+	cfg := w.cfgMgr.Get()
+	w.mu.RLock()
+	connected := cfg.Enabled && cfg.Role != "" && cfg.Role != "none" && w.lastPingMs >= 0 && w.consecutiveFailures == 0
+	lastPing := w.lastPingMs
+	w.mu.RUnlock()
+
+	stats := traffic.GetCollector().GetStats()
+	state := "❌ قطع"
+	if connected {
+		state = "✅ متصل"
+	}
+	message := fmt.Sprintf("📊 گزارش دوره‌ای NORA TUNNEL\nوضعیت تانل: %s\nنقش: %s\nهسته: %s\nمصرف دریافت (RX): %s\nمصرف ارسال (TX): %s\nمصرف کل: %s\nسرعت RX/TX: %s / %s", state, cfg.Role, cfg.Core, stats.RxFormatted, stats.TxFormatted, stats.TotalFormatted, stats.RxSpeedStr, stats.TxSpeedStr)
+	if lastPing >= 0 {
+		message += fmt.Sprintf("\nپینگ: %d ms", lastPing)
+	}
+	w.notifyTelegram(message)
 }
 
 func (w *Watchdog) checkOnce() {
@@ -235,6 +260,7 @@ func (w *Watchdog) checkOnce() {
 		w.consecutiveFailures = 0
 		w.lastPingMs = -1
 		w.outageNotified = false
+		w.lastSuccess = time.Time{}
 		w.mu.Unlock()
 		return
 	}
@@ -248,6 +274,7 @@ func (w *Watchdog) checkOnce() {
 
 	if success {
 		wasOutage := w.outageNotified
+		firstConnection := w.lastSuccess.IsZero()
 		if w.consecutiveFailures > 0 {
 			log.Printf("[NORA-WATCHDOG] ✅ Tunnel connection recovered healthy (ping: %d ms)", latencyMs)
 		}
@@ -258,8 +285,12 @@ func (w *Watchdog) checkOnce() {
 		w.lastMessage = fmt.Sprintf("ارتباط تانل فعال و پایدار است (پینگ: %d ms)", latencyMs)
 		w.outageNotified = false
 		w.bhMgr.UpdatePing(latencyMs)
-		if wasOutage {
-			go w.notifyTelegram(fmt.Sprintf("✅ تانل NORA دوباره برقرار شد\nنقش: %s\nهسته: %s\nپینگ: %d ms", cfg.Role, cfg.Core, latencyMs))
+		if firstConnection || wasOutage {
+			verb := "دوباره برقرار شد"
+			if firstConnection {
+				verb = "متصل شد"
+			}
+			go w.notifyTelegram(fmt.Sprintf("✅ تانل NORA %s\nنقش: %s\nهسته: %s\nپینگ: %d ms", verb, cfg.Role, cfg.Core, latencyMs))
 		}
 		return
 	}
@@ -269,16 +300,16 @@ func (w *Watchdog) checkOnce() {
 	w.lastPingMs = -1
 	w.bhMgr.UpdatePing(-1)
 	w.lastMessage = fmt.Sprintf("عدم پاسخگویی سرور مقابل (خطای متوالی: %d/%d)", w.consecutiveFailures, w.failureThreshold)
+	if !w.outageNotified {
+		w.outageNotified = true
+		go w.notifyTelegram(fmt.Sprintf("🚨 ارتباط تانل NORA قطع شد\nنقش: %s\nهسته: %s\nاولین بررسی ناموفق ثبت شد؛ در صورت تداوم، بازیابی خودکار انجام می‌شود.", cfg.Role, cfg.Core))
+	}
 
 	// Evaluate auto-restart threshold
 	if w.consecutiveFailures >= w.failureThreshold {
 		now := time.Now()
 		dynamicCooldown := w.getDynamicCooldown()
 		if now.Sub(w.lastAutoRestart) >= dynamicCooldown {
-			if !w.outageNotified {
-				w.outageNotified = true
-				go w.notifyTelegram(fmt.Sprintf("🚨 ارتباط تانل NORA قطع شد\nنقش: %s\nهسته: %s\nپس از %d بررسی ناموفق، بازیابی خودکار آغاز شد.", cfg.Role, cfg.Core, w.failureThreshold))
-			}
 			w.lastAutoRestart = now
 			w.autoRestartCount++
 			w.consecutiveRestarts++
