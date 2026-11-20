@@ -88,6 +88,8 @@ func (s *Server) registerRoutes() {
 	s.mux.HandleFunc("/api/watchdog/status", s.handleWatchdogStatus)
 	s.mux.HandleFunc("/api/watchdog/toggle", s.handleWatchdogToggle)
 	s.mux.HandleFunc("/api/watchdog/restart", s.handleWatchdogRestart)
+	s.mux.HandleFunc("/api/watchdog/telegram", s.handleWatchdogTelegram)
+	s.mux.HandleFunc("/api/watchdog/telegram/test", s.handleWatchdogTelegramTest)
 
 	// Static web files
 	subFS, err := fs.Sub(webFS, "assets")
@@ -882,6 +884,57 @@ func (s *Server) handleWatchdogRestart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.jsonResponse(w, true, "دستور بازیابی و ری‌استارت تانل توسط محافظ خودکار اجرا شد", s.watchdog.GetStatus())
+}
+
+func (s *Server) handleWatchdogTelegram(w http.ResponseWriter, r *http.Request) {
+	if !s.isAuthenticated(r) {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	if r.Method == http.MethodGet {
+		s.jsonResponse(w, true, "", s.watchdog.GetTelegramStatus())
+		return
+	}
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Enabled  bool   `json:"enabled"`
+		BotToken string `json:"bot_token"`
+		ChatID   string `json:"chat_id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		s.jsonResponse(w, false, "Invalid JSON: "+err.Error(), nil)
+		return
+	}
+	if strings.TrimSpace(req.BotToken) == "" {
+		req.BotToken = s.cfgMgr.GetAppConfig().TelegramBotToken
+	}
+	if strings.TrimSpace(req.ChatID) == "" {
+		req.ChatID = s.cfgMgr.GetAppConfig().TelegramChatID
+	}
+	if err := s.watchdog.ConfigureTelegram(req.Enabled, req.BotToken, req.ChatID); err != nil {
+		s.jsonResponse(w, false, err.Error(), nil)
+		return
+	}
+	s.jsonResponse(w, true, "تنظیمات اعلان تلگرام ذخیره شد", s.watchdog.GetTelegramStatus())
+}
+
+func (s *Server) handleWatchdogTelegramTest(w http.ResponseWriter, r *http.Request) {
+	if !s.isAuthenticated(r) {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if err := s.watchdog.SendTelegramTest(); err != nil {
+		s.jsonResponse(w, false, "ارسال تست تلگرام ناموفق بود: "+err.Error(), nil)
+		return
+	}
+	s.jsonResponse(w, true, "پیام تست تلگرام ارسال شد", nil)
 }
 
 func (s *Server) handleSystemDiag(w http.ResponseWriter, r *http.Request) {

@@ -1,10 +1,13 @@
 package watchdog
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net"
+	"net/http"
 	"strings"
 	"sync"
 	"time"
@@ -26,6 +29,15 @@ type Status struct {
 	AutoRestartCount    int64     `json:"auto_restart_count"`
 	LastPingMs          int64     `json:"last_ping_ms"`
 	LastMessage         string    `json:"last_message"`
+	TelegramConfigured  bool      `json:"telegram_configured"`
+	TelegramEnabled     bool      `json:"telegram_enabled"`
+	TelegramChatID      string    `json:"telegram_chat_id"`
+}
+
+type TelegramStatus struct {
+	Configured bool   `json:"configured"`
+	Enabled    bool   `json:"enabled"`
+	ChatID     string `json:"chat_id"`
 }
 
 type Watchdog struct {
@@ -46,6 +58,7 @@ type Watchdog struct {
 	lastAutoRestart     time.Time
 	lastPingMs          int64
 	lastMessage         string
+	outageNotified      bool
 
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -90,6 +103,64 @@ func (w *Watchdog) SetEnabled(enabled bool) {
 	}
 }
 
+func (w *Watchdog) GetTelegramStatus() TelegramStatus {
+	cfg := w.cfgMgr.GetAppConfig()
+	return TelegramStatus{
+		Configured: strings.TrimSpace(cfg.TelegramBotToken) != "" && strings.TrimSpace(cfg.TelegramChatID) != "",
+		Enabled:    cfg.TelegramEnabled,
+		ChatID:     strings.TrimSpace(cfg.TelegramChatID),
+	}
+}
+
+func (w *Watchdog) ConfigureTelegram(enabled bool, botToken, chatID string) error {
+	botToken = strings.TrimSpace(botToken)
+	chatID = strings.TrimSpace(chatID)
+	if enabled && (botToken == "" || chatID == "") {
+		return fmt.Errorf("bot token and chat ID are required when Telegram notifications are enabled")
+	}
+	return w.cfgMgr.UpdateApp(func(c *config.AppConfig) {
+		c.TelegramEnabled = enabled
+		c.TelegramBotToken = botToken
+		c.TelegramChatID = chatID
+	})
+}
+
+func (w *Watchdog) SendTelegramTest() error {
+	return w.sendTelegram("✅ تست موفق NORA TUNNEL\nاعلان‌های Watchdog تلگرام فعال هستند.")
+}
+
+func (w *Watchdog) sendTelegram(message string) error {
+	cfg := w.cfgMgr.GetAppConfig()
+	if !cfg.TelegramEnabled || strings.TrimSpace(cfg.TelegramBotToken) == "" || strings.TrimSpace(cfg.TelegramChatID) == "" {
+		return fmt.Errorf("Telegram notifications are not configured")
+	}
+	body, err := json.Marshal(map[string]string{"chat_id": strings.TrimSpace(cfg.TelegramChatID), "text": message})
+	if err != nil {
+		return err
+	}
+	url := fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", strings.TrimSpace(cfg.TelegramBotToken))
+	req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(body))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := (&http.Client{Timeout: 8 * time.Second}).Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return fmt.Errorf("Telegram API returned HTTP %s", resp.Status)
+	}
+	return nil
+}
+
+func (w *Watchdog) notifyTelegram(message string) {
+	if err := w.sendTelegram(message); err != nil {
+		log.Printf("[NORA-WATCHDOG] Telegram notification failed: %v", err)
+	}
+}
+
 func (w *Watchdog) ResetFailures() {
 	w.mu.Lock()
 	defer w.mu.Unlock()
@@ -114,6 +185,7 @@ func (w *Watchdog) GetStatus() Status {
 	defer w.mu.RUnlock()
 
 	cfg := w.cfgMgr.Get()
+	tg := w.GetTelegramStatus()
 	active := cfg.Enabled && cfg.Role != "" && cfg.Role != "none"
 
 	return Status{
@@ -128,6 +200,9 @@ func (w *Watchdog) GetStatus() Status {
 		AutoRestartCount:    w.autoRestartCount,
 		LastPingMs:          w.lastPingMs,
 		LastMessage:         w.lastMessage,
+		TelegramConfigured:  tg.Configured,
+		TelegramEnabled:     tg.Enabled,
+		TelegramChatID:      tg.ChatID,
 	}
 }
 
@@ -159,6 +234,7 @@ func (w *Watchdog) checkOnce() {
 		w.mu.Lock()
 		w.consecutiveFailures = 0
 		w.lastPingMs = -1
+		w.outageNotified = false
 		w.mu.Unlock()
 		return
 	}
@@ -171,6 +247,7 @@ func (w *Watchdog) checkOnce() {
 	w.lastCheck = time.Now()
 
 	if success {
+		wasOutage := w.outageNotified
 		if w.consecutiveFailures > 0 {
 			log.Printf("[NORA-WATCHDOG] ✅ Tunnel connection recovered healthy (ping: %d ms)", latencyMs)
 		}
@@ -179,7 +256,11 @@ func (w *Watchdog) checkOnce() {
 		w.lastPingMs = latencyMs
 		w.lastSuccess = time.Now()
 		w.lastMessage = fmt.Sprintf("ارتباط تانل فعال و پایدار است (پینگ: %d ms)", latencyMs)
+		w.outageNotified = false
 		w.bhMgr.UpdatePing(latencyMs)
+		if wasOutage {
+			go w.notifyTelegram(fmt.Sprintf("✅ تانل NORA دوباره برقرار شد\nنقش: %s\nهسته: %s\nپینگ: %d ms", cfg.Role, cfg.Core, latencyMs))
+		}
 		return
 	}
 
@@ -194,6 +275,10 @@ func (w *Watchdog) checkOnce() {
 		now := time.Now()
 		dynamicCooldown := w.getDynamicCooldown()
 		if now.Sub(w.lastAutoRestart) >= dynamicCooldown {
+			if !w.outageNotified {
+				w.outageNotified = true
+				go w.notifyTelegram(fmt.Sprintf("🚨 ارتباط تانل NORA قطع شد\nنقش: %s\nهسته: %s\nپس از %d بررسی ناموفق، بازیابی خودکار آغاز شد.", cfg.Role, cfg.Core, w.failureThreshold))
+			}
 			w.lastAutoRestart = now
 			w.autoRestartCount++
 			w.consecutiveRestarts++

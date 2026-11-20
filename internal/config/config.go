@@ -26,10 +26,13 @@ type TunnelConfig struct {
 }
 
 type AppConfig struct {
-	WebPort      int          `json:"web_port"`
-	Username     string       `json:"username"`
-	Password     string       `json:"password"`
-	SecretKey    string       `json:"secret_key"`
+	WebPort      int       `json:"web_port"`
+	Username     string    `json:"username"`
+	Password     string    `json:"password"`
+	SecretKey    string    `json:"secret_key"`
+	TelegramBotToken string  `json:"telegram_bot_token,omitempty"`
+	TelegramChatID   string  `json:"telegram_chat_id,omitempty"`
+	TelegramEnabled  bool    `json:"telegram_enabled,omitempty"`
 	Tunnel       TunnelConfig `json:"tunnel"`
 	ConfigPath   string       `json:"-"`
 	mu           sync.RWMutex `json:"-"`
@@ -161,6 +164,13 @@ func (m *Manager) Update(fn func(*TunnelConfig)) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	fn(&m.appCfg.Tunnel)
+	return m.appCfg.Save()
+}
+
+func (m *Manager) UpdateApp(fn func(*AppConfig)) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	fn(m.appCfg)
 	return m.appCfg.Save()
 }
 

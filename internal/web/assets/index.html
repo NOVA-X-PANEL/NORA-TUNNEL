@@ -1357,6 +1357,13 @@
         <span class="drawer-item-icon">📡</span>
         <span data-i18n="drawer_ping">سنجش دستی پینگ سرورها</span>
       </a>
+      <a class="drawer-item highlight" onclick="openTelegramWatchdogModal(); closeDrawer();">
+        <span class="drawer-item-icon">📨</span>
+        <div style="flex: 1;">
+          <div style="font-weight: 700;">اعلان تلگرام Watchdog</div>
+          <div style="font-size: 11px; color: var(--neon-cyan);">اعلان قطع و برقراری مجدد تانل</div>
+        </div>
+      </a>
 
       <div style="margin-top: auto; padding-top: 24px;">
         <a class="drawer-item" style="color: var(--danger);" onclick="doLogout()">
@@ -1404,6 +1411,37 @@
         <button type="button" class="btn btn-primary" id="btn-start-update" onclick="startPanelUpdate()">
           <span data-i18n="update_btn_start">⚡ شروع بروزرسانی آنلاین</span>
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Telegram Watchdog Modal -->
+  <div class="modal-overlay" id="telegram-watchdog-modal" style="display: none;">
+    <div class="modal-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <div style="font-size: 17px; font-weight: 800; color: #fff;">📨 اعلان تلگرام Watchdog</div>
+        <button class="drawer-close" onclick="closeTelegramWatchdogModal()">✕</button>
+      </div>
+      <div class="update-info-box" style="line-height: 1.8; font-size: 12px; margin-bottom: 16px;">
+        برای دریافت اعلان، ابتدا در BotFather ربات بسازید، سپس Bot Token و Chat ID خودتان را وارد کنید. اعلان پس از چند بررسی ناموفق ارسال می‌شود تا پیام اشتباه یا اسپم ایجاد نشود.
+      </div>
+      <div class="form-group">
+        <label class="form-label">Bot Token</label>
+        <input class="form-input" id="telegram-bot-token" type="password" autocomplete="off" placeholder="123456789:AA...">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Chat ID</label>
+        <input class="form-input" id="telegram-chat-id" type="text" inputmode="numeric" placeholder="مثلاً 123456789 یا -100...">
+      </div>
+      <label style="display: flex; align-items: center; gap: 9px; font-size: 13px; margin: 12px 0;">
+        <input type="checkbox" id="telegram-enabled">
+        فعال‌سازی اعلان‌های قطع و بازیابی
+      </label>
+      <div id="telegram-watchdog-status" style="min-height: 22px; color: var(--text-muted); font-size: 12px; margin: 10px 0;"></div>
+      <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; flex-wrap: wrap;">
+        <button type="button" class="btn btn-secondary" onclick="closeTelegramWatchdogModal()">انصراف</button>
+        <button type="button" class="btn btn-secondary" onclick="testTelegramWatchdog()">ارسال پیام تست</button>
+        <button type="button" class="btn btn-primary" onclick="saveTelegramWatchdog()">ذخیره تنظیمات</button>
       </div>
     </div>
   </div>
@@ -2986,6 +3024,65 @@
         }
       } catch (e) {
         showToast('خطا در دریافت وضعیت محافظ: ' + e, 'error');
+      }
+    }
+
+    async function openTelegramWatchdogModal() {
+      const modal = document.getElementById('telegram-watchdog-modal');
+      if (modal) modal.style.display = 'flex';
+      const statusEl = document.getElementById('telegram-watchdog-status');
+      if (statusEl) statusEl.innerText = 'در حال دریافت تنظیمات...';
+      try {
+        const res = await authFetch('/api/watchdog/telegram');
+        const data = await res.json();
+        if (data.success && data.obj) {
+          document.getElementById('telegram-enabled').checked = !!data.obj.enabled;
+          if (statusEl) statusEl.innerText = data.obj.configured ? 'تنظیمات ذخیره شده است؛ Token برای امنیت نمایش داده نمی‌شود.' : 'هنوز تنظیم نشده است.';
+        }
+      } catch (e) {
+        if (statusEl) statusEl.innerText = 'خطا در دریافت تنظیمات: ' + (e.message || e);
+      }
+    }
+
+    function closeTelegramWatchdogModal() {
+      const modal = document.getElementById('telegram-watchdog-modal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    async function saveTelegramWatchdog() {
+      const statusEl = document.getElementById('telegram-watchdog-status');
+      const body = {
+        enabled: document.getElementById('telegram-enabled').checked,
+        bot_token: document.getElementById('telegram-bot-token').value.trim(),
+        chat_id: document.getElementById('telegram-chat-id').value.trim()
+      };
+      try {
+        const res = await authFetch('/api/watchdog/telegram', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.msg || 'ذخیره تنظیمات ناموفق بود');
+        if (statusEl) statusEl.innerText = data.msg || 'تنظیمات ذخیره شد.';
+        document.getElementById('telegram-bot-token').value = '';
+        showToast('اعلان تلگرام Watchdog فعال شد', 'success');
+      } catch (e) {
+        if (statusEl) statusEl.innerText = e.message || e;
+        showToast('خطا در ذخیره اعلان تلگرام: ' + (e.message || e), 'error');
+      }
+    }
+
+    async function testTelegramWatchdog() {
+      const statusEl = document.getElementById('telegram-watchdog-status');
+      if (statusEl) statusEl.innerText = 'در حال ارسال پیام تست...';
+      try {
+        const res = await authFetch('/api/watchdog/telegram/test', { method: 'POST' });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.msg || 'ارسال پیام تست ناموفق بود');
+        if (statusEl) statusEl.innerText = data.msg || 'پیام تست ارسال شد.';
+        showToast(data.msg || 'پیام تست ارسال شد', 'success');
+      } catch (e) {
+        if (statusEl) statusEl.innerText = e.message || e;
+        showToast('خطا در تست تلگرام: ' + (e.message || e), 'error');
       }
     }
 
