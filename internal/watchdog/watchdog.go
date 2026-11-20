@@ -365,6 +365,11 @@ func (w *Watchdog) probePeer(cfg config.TunnelConfig) (bool, int64) {
 			if latency <= 0 {
 				latency = measureICMPLatency(cfg)
 			}
+			if latency <= 0 {
+				// ICMP is commonly blocked in datacenters. This fallback is
+				// metrics-only; Backhaul logs remain the health authority.
+				latency = measureControlLatency(cfg)
+			}
 			return true, latency
 		}
 		return false, -1
@@ -455,4 +460,26 @@ func measureICMPLatency(cfg config.TunnelConfig) int64 {
 		return -1
 	}
 	return int64(value + 0.5)
+}
+
+func measureControlLatency(cfg config.TunnelConfig) int64 {
+	target := cfg.KharejIP
+	if cfg.Role == "kharej" {
+		target = cfg.IranIP
+	}
+	target = strings.TrimSuffix(strings.TrimPrefix(strings.TrimPrefix(strings.TrimSpace(target), "http://"), "https://"), "/")
+	port := cfg.ControlPort
+	if port <= 0 {
+		port = 3080
+	}
+	if target == "" {
+		return -1
+	}
+	start := time.Now()
+	conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%d", target, port), 3*time.Second)
+	if err != nil {
+		return -1
+	}
+	_ = conn.Close()
+	return time.Since(start).Milliseconds()
 }
