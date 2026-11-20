@@ -333,6 +333,10 @@ func (s *Server) handleCreateTunnel(w http.ResponseWriter, r *http.Request) {
 	if req.ControlPort <= 0 {
 		req.ControlPort = 3080
 	}
+	if req.ControlPort == s.cfgMgr.GetAppConfig().WebPort {
+		s.jsonResponse(w, false, "Control port must differ from the web dashboard port", nil)
+		return
+	}
 	if req.Ports == nil {
 		req.Ports = []string{}
 	}
@@ -414,6 +418,10 @@ func (s *Server) handleConnectTunnel(w http.ResponseWriter, r *http.Request) {
 	payload, err := tunnel.ParseHash(req.Hash)
 	if err != nil {
 		s.jsonResponse(w, false, "Invalid hash format: "+err.Error(), nil)
+		return
+	}
+	if payload.ControlPort == s.cfgMgr.GetAppConfig().WebPort {
+		s.jsonResponse(w, false, "Control port must differ from the web dashboard port; change the dashboard port first", nil)
 		return
 	}
 

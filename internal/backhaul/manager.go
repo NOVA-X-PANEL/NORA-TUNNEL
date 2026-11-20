@@ -490,6 +490,34 @@ func (m *Manager) GetLogs() []string {
 	return out
 }
 
+// ConnectionHealthy reports the last known Backhaul control-channel state.
+// A raw TCP connect is not a valid health check because it sends no Backhaul
+// handshake and makes the server log an invalid signal.
+func (m *Manager) ConnectionHealthy() bool {
+	if !m.GetStatus().Running {
+		return false
+	}
+	if os.Geteuid() == 0 && hasSystemd() {
+		out, err := exec.Command("journalctl", "-u", SystemdServiceName, "-n", "80", "--no-pager").CombinedOutput()
+		if err == nil {
+			healthy := false
+			for _, line := range strings.Split(string(out), "\n") {
+				switch {
+				case strings.Contains(line, "control channel successfully established"):
+					healthy = true
+				case strings.Contains(line, "channel dialer:"),
+					strings.Contains(line, "shutting down client"),
+					strings.Contains(line, "shutting down server"),
+					strings.Contains(line, "all workers stopped"):
+					healthy = false
+				}
+			}
+			return healthy
+		}
+	}
+	return true
+}
+
 func (m *Manager) UpdatePing(latencyMs int64) {
 	m.mu.Lock()
 	defer m.mu.Unlock()

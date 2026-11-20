@@ -356,6 +356,13 @@ func (w *Watchdog) getDynamicCooldown() time.Duration {
 }
 
 func (w *Watchdog) probePeer(cfg config.TunnelConfig) (bool, int64) {
+	if cfg.Core == "backhaul" {
+		if w.bhMgr.ConnectionHealthy() {
+			return true, int64(w.bhMgr.GetStatus().LastPingMs)
+		}
+		return false, -1
+	}
+
 	ctrlPort := cfg.ControlPort
 	if ctrlPort <= 0 {
 		ctrlPort = 3080
