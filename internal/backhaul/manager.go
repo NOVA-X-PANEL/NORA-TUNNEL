@@ -495,10 +495,11 @@ func (m *Manager) GetLogs() []string {
 // A raw TCP connect is not a valid health check because it sends no Backhaul
 // handshake and makes the server log an invalid signal.
 func (m *Manager) ConnectionHealthy() bool {
-	if !m.GetStatus().Running {
-		return false
-	}
 	if os.Geteuid() == 0 && hasSystemd() {
+		active, activeErr := exec.Command("systemctl", "is-active", SystemdServiceName).Output()
+		if activeErr != nil || strings.TrimSpace(string(active)) != "active" {
+			return false
+		}
 		out, err := exec.Command("journalctl", "-u", SystemdServiceName, "-n", "30", "--since", "2 minutes ago", "--no-pager").CombinedOutput()
 		if err == nil {
 			lines := strings.Split(string(out), "\n")
@@ -528,8 +529,9 @@ func (m *Manager) ConnectionHealthy() bool {
 			}
 			return false
 		}
+		return false
 	}
-	return true
+	return m.GetStatus().Running
 }
 
 func (m *Manager) UpdatePing(latencyMs int64) {
